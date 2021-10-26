@@ -1,3 +1,9 @@
+mod chunk;
+
+use crate::chunk::{OpCode, Chunk};
+
 fn main() {
-    println!("Hello, world!");
+    let mut chunk = Chunk::new("test chunk");
+    chunk.write(OpCode::OpReturn);
+    println!("{}", chunk);
 }
