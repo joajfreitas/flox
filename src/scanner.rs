@@ -2,10 +2,10 @@ use regex::Regex;
 use lazy_static::lazy_static;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Token<'a> {
+pub enum Token {
     LeftParen,
     RightParen,
-    Atom(&'a str)
+    Atom(String)
 }
 
 #[derive(Debug, Clone)]
@@ -37,7 +37,7 @@ impl Scanner{
         Some(match token {
             "(" => Token::LeftParen,
             ")" => Token::RightParen,
-            _ => Token::Atom(token),
+            _ => Token::Atom(token.to_string()),
         })
     }
 }

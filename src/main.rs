@@ -22,7 +22,8 @@ fn main() {
 
     //vm.interpret(chunk);
     let mut chunk = Chunk::new("test chunk");
-    compile("(+ 1 2)", &mut chunk);
+    compile("(+ 1 (+ 1 1))", &mut chunk);
+    println!("{}", chunk);
     let mut vm = VirtualMachine::new();
     vm.interpret(chunk);
 }

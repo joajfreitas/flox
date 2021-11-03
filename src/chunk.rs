@@ -1,26 +1,184 @@
 use std::fmt;
+use std::cmp::Ordering;
+use std::ops::{Not, Add, Sub, Mul, Div, BitAnd, BitOr, BitXor};
 
 #[derive(Debug)]
 pub enum OpCode {
     OpReturn,
     OpConstant,
     OpConstantLong,
-    OpNegate,
     OpAdd,
     OpSubtract,
     OpMultiply,
     OpDivide,
+    OpNil,
+    OpTrue,
+    OpFalse,
+    OpNot,
+    OpEq,
+    OpNe,
+    OpBt,
+    OpLt,
+    OpBe,
+    OpLe,
+    OpAnd,
+    OpNand,
+    OpOr,
+    OpNor,
+    OpXor,
+    OpXnor,
 }
 
 #[derive(Debug, Copy, Clone)]
 pub enum Value {
-    Value(f64),
+    Number(f64),
+    Bool(bool),
+    Nil,
 }
 
 impl Value {
-    pub fn get_value(&self) -> f64 {
+    pub fn get_number(&self) -> f64 {
         match self {
-            Value::Value(f) => *f,
+            Value::Number(f) => *f,
+            _ => panic!(),
+        }
+    }
+
+    pub fn get_bool(&self) -> bool {
+        match self {
+            Value::Bool(b) => *b,
+            _ => panic!(),
+        }
+    }
+
+    pub fn is_nil(&self) -> bool {
+        match self {
+            Value::Nil => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_number(&self) -> bool {
+        match self {
+            Value::Number(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_bool(&self) -> bool {
+        match self {
+            Value::Bool(_) => true,
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
+            _ => panic!(),
+        }
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        !self.eq(other)
+    }
+}
+
+impl Eq for Value {}
+
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (Value::Bool(b1), Value::Bool(b2)) => Some(b1.cmp(b2)),
+            (Value::Number(n1), Value::Number(n2)) => n1.partial_cmp(n2),
+            _ => panic!(),
+        }
+    }
+}
+
+impl Add for Value {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        match (self, other) {
+            (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 + n2),
+            _ => panic!(),
+        }
+    }
+}
+
+impl Sub for Value {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        match (self, other) {
+            (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 - n2),
+            _ => panic!(),
+        }
+    }
+}
+
+impl Mul for Value {
+    type Output = Self;
+
+    fn mul(self, other: Self) -> Self {
+        match (self, other) {
+            (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 * n2),
+            _ => panic!(),
+        }
+    }
+}
+
+impl Div for Value {
+    type Output = Self;
+
+    fn div(self, other: Self) -> Self {
+        match (self, other) {
+            (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 / n2),
+            _ => panic!(),
+        }
+    }
+}
+
+impl BitAnd for Value {
+    type Output = Self;
+    fn bitand(self, rhs: Self) -> Self {
+        match (self, rhs) {
+            (Value::Bool(b1), Value::Bool(b2)) => Value::Bool(b1 & b2),
+            _ => panic!(),
+        }
+    }
+}
+
+impl BitOr for Value {
+    type Output = Self;
+    fn bitor(self, rhs: Self) -> Self {
+        match (self, rhs) {
+            (Value::Bool(b1), Value::Bool(b2)) => Value::Bool(b1 | b2),
+            _ => panic!(),
+        }
+    }
+}
+
+impl BitXor for Value {
+    type Output = Self;
+    fn bitxor(self, rhs: Self) -> Self {
+        match (self, rhs) {
+            (Value::Bool(b1), Value::Bool(b2)) => Value::Bool(b1 ^ b2),
+            _ => panic!(),
+        }
+    }
+}
+
+impl Not for Value {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Value::Bool(b) => Value::Bool(!b),
+            _ => panic!(),
         }
     }
 }
@@ -28,7 +186,9 @@ impl Value {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Value::Value(value) => write!(f, "{:.1}", value),
+            Value::Number(value) => write!(f, "{:.1}", value),
+            Value::Bool(value) => write!(f, "{:1}", value),
+            Value::Nil => write!(f, "nil"),
         }
     }
 }
@@ -68,7 +228,8 @@ impl fmt::Display for Chunk<'_> {
             }
         }
 
-        write!(f, "{:?}", self.lines)?;
+        //write!(f, "{:?}", self.lines)?;
+        write!(f, "================")?;
 
         Ok(())
     }
@@ -163,6 +324,7 @@ impl Chunk<'_> {
         &self,
         index: usize,
     ) -> (String, usize) {
+
         let mut s = String::new();
 
         s.push_str(&format!("{:0>4} ", index));
@@ -178,14 +340,9 @@ impl Chunk<'_> {
             s.push_str(&format!("{} ", self.get_line(index)));
         }
 
+
         let opcode = self.get_opcode(index);
         let (ss, i) = match opcode {
-            OpCode::OpReturn | 
-                OpCode::OpNegate |
-                OpCode::OpAdd |
-                OpCode::OpSubtract |
-                OpCode::OpMultiply |
-                OpCode::OpDivide => (format!("{:?}\n", opcode), 1),
             OpCode::OpConstant => {
                 let (n, c) = self.get_constant(index + 1);
                 (format!("{:?} {}:'{}'\n", opcode, n, c), 2)
@@ -194,6 +351,7 @@ impl Chunk<'_> {
                 let value = self.get_constant_long(index + 1).unwrap();
                 (format!("{:?} '{}'\n", opcode, value), 4)
             },
+            _ => (format!("{:?}\n", opcode), 1),
         };
 
         s.push_str(&ss);

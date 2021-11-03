@@ -12,6 +12,37 @@ pub enum VMErr {
     InterpretRuntimeError,
 }
 
+
+macro_rules! nullary {
+    ($fn:expr, $self:expr) => {
+        {
+            $self.stack.push($fn());
+            $self.ip += 1;
+        }
+    };
+}
+
+macro_rules! unary {
+    ($fn:expr, $self:expr) => {
+        {
+            let arg = $self.stack.pop().unwrap();
+            $self.stack.push($fn(arg));
+            $self.ip += 1;
+        }
+    };
+}
+
+macro_rules! binary {
+    ($fn:expr, $self:expr) => {
+        {
+            let arg2 = $self.stack.pop().unwrap();
+            let arg1 = $self.stack.pop().unwrap();
+            $self.stack.push($fn(arg1, arg2));
+            $self.ip += 1;
+        }
+    };
+}
+
 impl VirtualMachine {
     pub fn new() -> VirtualMachine {
         VirtualMachine { 
@@ -25,6 +56,7 @@ impl VirtualMachine {
     }
 
     fn run(&mut self, chunk: Chunk) -> Result<(), VMErr> {
+        self.ip=0;
         loop {
             if DEBUG == true {
                 let (s, _) = chunk.display_instruction(self.ip);
@@ -44,35 +76,26 @@ impl VirtualMachine {
                     self.stack.push(*value);
                     self.ip+=4
                 },
-                OpCode::OpNegate => {
-                    let v = self.stack.pop().unwrap().get_value();
-                    self.stack.push(Value::Value(-v));
-                    self.ip+=1
-                },
-                OpCode::OpAdd => {
-                    let op2 = self.stack.pop().unwrap().get_value();
-                    let op1 = self.stack.pop().unwrap().get_value();
-                    self.stack.push(Value::Value(op1 + op2));
-                    self.ip+=1
-                },
-                OpCode::OpSubtract => {
-                    let op2 = self.stack.pop().unwrap().get_value();
-                    let op1 = self.stack.pop().unwrap().get_value();
-                    self.stack.push(Value::Value(op1 - op2));
-                    self.ip+=1
-                },
-                OpCode::OpMultiply => {
-                    let op2 = self.stack.pop().unwrap().get_value();
-                    let op1 = self.stack.pop().unwrap().get_value();
-                    self.stack.push(Value::Value(op1 * op2));
-                    self.ip+=1
-                },
-                OpCode::OpDivide => {
-                    let op2 = self.stack.pop().unwrap().get_value();
-                    let op1 = self.stack.pop().unwrap().get_value();
-                    self.stack.push(Value::Value(op1 / op2));
-                    self.ip+=1
-                },
+                OpCode::OpNil => nullary!(||{Value::Nil}, self),
+                OpCode::OpTrue => nullary!(||{Value::Bool(true)}, self),
+                OpCode::OpFalse => nullary!(||{Value::Bool(false)}, self),
+                OpCode::OpAdd => binary!(|x,y|{x+y}, self),
+                OpCode::OpSubtract => binary!(|x,y|{x-y}, self),
+                OpCode::OpMultiply => binary!(|x,y|{x*y}, self),
+                OpCode::OpDivide => binary!(|x,y|{x/y}, self),
+                OpCode::OpNot => unary!(|x: Value| {!x}, self),
+                OpCode::OpEq => binary!(|x,y|{Value::Bool(x == y)}, self),
+                OpCode::OpNe => binary!(|x,y|{Value::Bool(x != y)}, self),
+                OpCode::OpBt => binary!(|x,y|{Value::Bool(x > y)}, self),
+                OpCode::OpBe => binary!(|x,y|{Value::Bool(x >= y)}, self),
+                OpCode::OpLt => binary!(|x,y|{Value::Bool(x < y)}, self),
+                OpCode::OpLe => binary!(|x,y|{Value::Bool(x <= y)}, self),
+                OpCode::OpAnd => binary!(|x,y|{x & y}, self),
+                OpCode::OpNand => binary!(|x:Value,y:Value|{!(x & y)}, self),
+                OpCode::OpOr => binary!(|x,y|{x | y}, self),
+                OpCode::OpNor => binary!(|x:Value,y:Value|{!(x | y)}, self),
+                OpCode::OpXor => binary!(|x,y|{x ^ y}, self),
+                OpCode::OpXnor => binary!(|x:Value,y:Value|{!(x ^ y)}, self),
             }
         }
     }
