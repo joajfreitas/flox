@@ -116,6 +116,9 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
         chunk.write_constant(constant as u8, 1);
         return;
     }
+    else if str_re.is_match(&atom) {
+        Ok(Str(unescape_str(&atom[1..atom.len() - 1])))
+    }
 
     panic!();
 }

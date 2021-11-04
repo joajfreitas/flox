@@ -68,12 +68,12 @@ impl VirtualMachine {
                 OpCode::OpReturn => return Ok(()),
                 OpCode::OpConstant => {
                     let (_, value) = chunk.get_constant(self.ip+1);
-                    self.stack.push(*value);
+                    self.stack.push(value.clone());
                     self.ip+=2
                 },
                 OpCode::OpConstantLong => {
                     let value = chunk.get_constant_long(self.ip+1).unwrap(); 
-                    self.stack.push(*value);
+                    self.stack.push(value.clone());
                     self.ip+=4
                 },
                 OpCode::OpNil => nullary!(||{Value::Nil}, self),

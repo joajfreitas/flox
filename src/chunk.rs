@@ -29,11 +29,19 @@ pub enum OpCode {
     OpXnor,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
+pub enum Object {
+    Str(String)
+}
+
+
+
+#[derive(Debug, Clone)]
 pub enum Value {
     Number(f64),
     Bool(bool),
     Nil,
+    Obj(Box<Object>)
 }
 
 impl Value {
@@ -189,6 +197,7 @@ impl fmt::Display for Value {
             Value::Number(value) => write!(f, "{:.1}", value),
             Value::Bool(value) => write!(f, "{:1}", value),
             Value::Nil => write!(f, "nil"),
+            Value::Obj(_) => write!(f, "obj"),
         }
     }
 }
