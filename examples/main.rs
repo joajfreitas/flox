@@ -1,3 +1,7 @@
+use std::env;
+use std::fs;
+use std::io;
+
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
@@ -5,24 +9,24 @@ use flox::chunk::{Chunk, OpCode, Value};
 use flox::compiler::compile;
 use flox::vm::VirtualMachine;
 
-fn main() {
+fn repl() {
     let mut rl = Editor::<()>::new();
     rl.load_history(".flang-history");
-    let prompt: String = "user> ".to_string();
-
+    let mut prompt: String = "user> ".to_string();
     let mut vm = VirtualMachine::new();
 
     loop {
-        let readline = rl.readline(&prompt);
-        match readline {
+        let line = rl.readline(&prompt);
+
+        match line {
             Ok(line) => {
-                let mut chunk = Chunk::new("test chunk");
-                compile(&line, &mut chunk);
-                vm.interpret(chunk);
                 rl.add_history_entry(line.as_str());
                 rl.save_history(".flang-history").unwrap();
+                let mut chunk = Chunk::new("test chunk");
+                compile(&line, &mut chunk);
+                println!("{}", chunk);
+                vm.interpret(chunk);
             },
-
             Err(ReadlineError::Interrupted) => break,
             Err(ReadlineError::Eof) => break,
             Err(err) => {
@@ -31,9 +35,24 @@ fn main() {
             }
         }
     }
+}
 
+fn run_file(filename: String) {
+    let source = fs::read_to_string(filename).unwrap();
 
+    let mut chunk = Chunk::new("test chunk");
+    compile(&source, &mut chunk);
+    println!("{}", chunk);
+    let mut vm = VirtualMachine::new();
+    vm.interpret(chunk);
+}
 
-
-
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    if args.len() == 2 {
+        run_file(args[1].clone());
+    }
+    else if args.len() == 1 {
+        repl();
+    }
 }

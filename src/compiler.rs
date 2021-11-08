@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
-use regex::Regex;
+use regex::{Regex, Captures};
 
-use crate::chunk::{Chunk, OpCode, Value};
+use crate::chunk::{Chunk, OpCode, Value, Object};
 use crate::scanner::{Scanner, Token};
 
 pub fn compile(source: &str, chunk: &mut Chunk) {
@@ -72,6 +72,14 @@ pub fn read_seq(scanner: &mut Scanner, chunk: &mut Chunk) {
 
 }
 
+fn unescape_str(s: &str) -> String {
+    let re: Regex = Regex::new(r#"\\(.)"#).unwrap();
+    re.replace_all(&s, |caps: &Captures| {
+        format!("{}", if &caps[1] == "n" { "\n" } else { &caps[1] })
+    })
+    .to_string()
+}
+
 fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
     lazy_static! {
         static ref int_re: Regex = Regex::new(r"^-?[0-9]+$").unwrap();
@@ -117,7 +125,11 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
         return;
     }
     else if str_re.is_match(&atom) {
-        Ok(Str(unescape_str(&atom[1..atom.len() - 1])))
+        chunk.write_opcode(OpCode::OpConstant, 1);
+        let s = Object::Str(unescape_str(&atom[1..atom.len() - 1]));
+        let constant = chunk.add_constant(Value::Obj(Box::new(s)));
+        chunk.write_constant(constant as u8, 1);
+        return;
     }
 
     panic!();

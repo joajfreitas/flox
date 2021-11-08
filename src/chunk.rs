@@ -2,7 +2,7 @@ use std::fmt;
 use std::cmp::Ordering;
 use std::ops::{Not, Add, Sub, Mul, Div, BitAnd, BitOr, BitXor};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum OpCode {
     OpReturn,
     OpConstant,
@@ -30,8 +30,16 @@ pub enum OpCode {
 }
 
 #[derive(Debug, Clone)]
+pub struct Closure {
+    arity: u8,
+    chunk: Chunk,
+    name: String 
+}
+
+#[derive(Debug, Clone)]
 pub enum Object {
-    Str(String)
+    Str(String),
+    Function(Box<Closure>)
 }
 
 
@@ -192,7 +200,7 @@ impl Not for Value {
 }
 
 impl fmt::Display for Value {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Value::Number(value) => write!(f, "{:.1}", value),
             Value::Bool(value) => write!(f, "{:1}", value),
@@ -202,7 +210,7 @@ impl fmt::Display for Value {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Element {
     OpCode(OpCode),
     Constant(u8),
@@ -217,15 +225,16 @@ impl Element {
     }
 }
 
-pub struct Chunk<'a> {
-    name: &'a str,
+#[derive(Debug, Clone)]
+pub struct Chunk {
+    name: String,
     code: Vec<Element>,
     constants: Vec<Value>,
     lines: Vec<(usize, usize)>,
 }
 
-impl fmt::Display for Chunk<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl fmt::Display for Chunk {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "==={}===\n", &self.name)?;
         let mut pc: usize = 0;
         loop {
@@ -244,10 +253,10 @@ impl fmt::Display for Chunk<'_> {
     }
 }
 
-impl Chunk<'_> {
-    pub fn new<'a>(name: &'a str) -> Chunk {
+impl Chunk {
+    pub fn new(name: &str) -> Chunk {
         Chunk {
-            name: name,
+            name: name.to_string(),
             code: Vec::new(),
             constants: Vec::new(),
             lines: Vec::new(),
