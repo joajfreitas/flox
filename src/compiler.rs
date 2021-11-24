@@ -18,7 +18,7 @@ pub fn parse(scanner: &mut Scanner, chunk: &mut Chunk) {
         Token::LeftParen => read_seq(scanner, chunk),
         Token::RightParen => {println!("unexpected ')'"); panic!()},
         Token::Atom(atom) => {
-            dbg!(scanner.scan().unwrap());
+            scanner.scan().unwrap();
             read_atom(&token, scanner, chunk);
         },
     }
@@ -61,7 +61,6 @@ pub fn read_seq(scanner: &mut Scanner, chunk: &mut Chunk) {
     let _ = scanner.scan();
 
     let op = scanner.peek().unwrap();
-    println!("{:?}", op);
     match op {
         Token::Atom(ref atom) => read_atom(&op.clone(), scanner, chunk),
         Token::LeftParen => parse(scanner, chunk),
@@ -91,7 +90,7 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
         _ => panic!(),
     };
 
-    match dbg!(atom) as &str {
+    match atom as &str {
         "nil" => {
             chunk.write_opcode(OpCode::OpNil, 1);
             return;
@@ -105,8 +104,18 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
             return;
         },
         "+" | "-" | "*" | "/" | "=" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "nand" | "or" | "nor" | "xor" | "xnor"  => { 
-            dbg!(scanner.scan().unwrap());
+            scanner.scan().unwrap();
             binary(atom, scanner, chunk);
+            return;
+        },
+        "set!" => {
+            scanner.scan().unwrap(); //function name?
+            let var_name = scanner.scan().unwrap().atom(); //first arg
+            parse(scanner, chunk);
+            chunk.write_opcode(OpCode::OpSetGlobal, 0);
+           
+            let idx = chunk.add_constant(Value::Obj(Box::new(Object::Str(var_name))));
+            chunk.write_constant(idx as u8, 1);
             return;
         },
         "not" => {
@@ -129,6 +138,12 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
         let s = Object::Str(unescape_str(&atom[1..atom.len() - 1]));
         let constant = chunk.add_constant(Value::Obj(Box::new(s)));
         chunk.write_constant(constant as u8, 1);
+        return;
+    }
+    else {
+        chunk.write_opcode(OpCode::OpGetGlobal, 1);
+        let idx = chunk.add_constant(Value::Obj(Box::new(Object::Str(atom.clone()))));
+        chunk.write_constant(idx as u8, 1);
         return;
     }
 

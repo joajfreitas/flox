@@ -7,7 +7,7 @@ use rustyline::Editor;
 
 use flox::chunk::{Chunk, OpCode, Value};
 use flox::compiler::compile;
-use flox::vm::VirtualMachine;
+use flox::vm::{VirtualMachine, VMErr};
 
 fn repl() {
     let mut rl = Editor::<()>::new();
@@ -25,7 +25,14 @@ fn repl() {
                 let mut chunk = Chunk::new("test chunk");
                 compile(&line, &mut chunk);
                 println!("{}", chunk);
-                vm.interpret(chunk);
+                match vm.interpret(chunk) {
+                    Ok(v) => println!("{}", v),
+                    Err(VMErr::RuntimeError(s)) => {
+                        println!("Error: {}", s);
+                        continue;
+                    },
+                    _ => continue,
+                };
             },
             Err(ReadlineError::Interrupted) => break,
             Err(ReadlineError::Eof) => break,

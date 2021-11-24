@@ -1,15 +1,17 @@
+use std::collections::HashMap;
 use crate::chunk::{Chunk, OpCode, Value};
 
 const DEBUG: bool = true;
 
 pub struct VirtualMachine {
     ip: usize,
-    stack: Vec<Value>
+    stack: Vec<Value>,
+    globals: HashMap<String, Value>,
 }
 
 pub enum VMErr {
-    InterpretCompileError,
-    InterpretRuntimeError,
+    CompileError,
+    RuntimeError(String),
 }
 
 
@@ -47,15 +49,16 @@ impl VirtualMachine {
     pub fn new() -> VirtualMachine {
         VirtualMachine { 
             ip: 0,
-            stack: Vec::new()
+            stack: Vec::new(),
+            globals: HashMap::new(),
         }
     }
 
-    pub fn interpret(&mut self, chunk: Chunk) -> Result<(), VMErr> {
+    pub fn interpret(&mut self, chunk: Chunk) -> Result<Value, VMErr> {
         self.run(chunk)
     }
 
-    fn run(&mut self, chunk: Chunk) -> Result<(), VMErr> {
+    fn run(&mut self, chunk: Chunk) -> Result<Value, VMErr> {
         self.ip=0;
         loop {
             if DEBUG == true {
@@ -65,7 +68,9 @@ impl VirtualMachine {
             }
             let opcode = chunk.get_opcode(self.ip);
             match opcode {
-                OpCode::OpReturn => return Ok(()),
+                OpCode::OpReturn => {
+                    return Ok(self.stack.pop().unwrap());
+                }
                 OpCode::OpConstant => {
                     let (_, value) = chunk.get_constant(self.ip+1);
                     self.stack.push(value.clone());
@@ -96,6 +101,22 @@ impl VirtualMachine {
                 OpCode::OpNor => binary!(|x:Value,y:Value|{!(x | y)}, self),
                 OpCode::OpXor => binary!(|x,y|{x ^ y}, self),
                 OpCode::OpXnor => binary!(|x:Value,y:Value|{!(x ^ y)}, self),
+                OpCode::OpSetGlobal => {
+                    let v = self.stack.pop().unwrap();
+                    let (_, value) = chunk.get_constant(self.ip+1);
+                    self.globals.insert(value.get_str().to_string(), v.clone());
+                    self.stack.push(v);
+                    self.ip+=2;
+                },
+                OpCode::OpGetGlobal => {
+                    let (_, value) = chunk.get_constant(self.ip+1);
+                    let value = match self.globals.get(value.get_str()) {
+                        Some(v) => v,
+                        None => return Err(VMErr::RuntimeError(format!("cannot find global variable '{}'", value))),
+                    };
+                    self.stack.push(value.clone());
+                    self.ip += 2;
+                }
             }
         }
     }

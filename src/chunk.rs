@@ -7,6 +7,8 @@ pub enum OpCode {
     OpReturn,
     OpConstant,
     OpConstantLong,
+    OpSetGlobal,
+    OpGetGlobal,
     OpAdd,
     OpSubtract,
     OpMultiply,
@@ -42,6 +44,15 @@ pub enum Object {
     Function(Box<Closure>)
 }
 
+impl Object {
+    fn get_str(&self) -> &str {
+        match self {
+            Object::Str(s) => &s,
+            _ => panic!(),
+        }
+    }
+}
+
 
 
 #[derive(Debug, Clone)]
@@ -63,6 +74,13 @@ impl Value {
     pub fn get_bool(&self) -> bool {
         match self {
             Value::Bool(b) => *b,
+            _ => panic!(),
+        }
+    }
+
+    pub fn get_str(&self) -> &str {
+        match self {
+            Value::Obj(obj) => obj.get_str(),
             _ => panic!(),
         }
     }
@@ -205,7 +223,12 @@ impl fmt::Display for Value {
             Value::Number(value) => write!(f, "{:.1}", value),
             Value::Bool(value) => write!(f, "{:1}", value),
             Value::Nil => write!(f, "nil"),
-            Value::Obj(_) => write!(f, "obj"),
+            Value::Obj(obj) => {
+                match &**obj {
+                    Object::Str(s) => write!(f, "{:1}", s),
+                    Object::Function(_) => write!(f, "function"),
+                }
+            },
         }
     }
 }
@@ -228,7 +251,7 @@ impl Element {
 #[derive(Debug, Clone)]
 pub struct Chunk {
     name: String,
-    code: Vec<Element>,
+    pub code: Vec<Element>,
     constants: Vec<Value>,
     lines: Vec<(usize, usize)>,
 }
@@ -319,7 +342,10 @@ impl Chunk {
     pub fn get_opcode(&self, index: usize) -> &OpCode {
         match &self.code[index] {
             Element::OpCode(opcode) => opcode,
-            _ => panic!(),
+            _ => {
+                println!("{:?}", self.code[index]);
+                panic!();
+            },
         }
     }
 
@@ -369,6 +395,14 @@ impl Chunk {
                 let value = self.get_constant_long(index + 1).unwrap();
                 (format!("{:?} '{}'\n", opcode, value), 4)
             },
+            OpCode::OpSetGlobal => {
+                let (n, c) = self.get_constant(index + 1);
+                (format!("{:?} {}: '{}\n", opcode, n, c), 2)
+            },
+            OpCode::OpGetGlobal => {
+                let (n, c) = self.get_constant(index+1);
+                (format!("{:?} {}: '{}\n", opcode, n, c), 2)
+            }
             _ => (format!("{:?}\n", opcode), 1),
         };
 

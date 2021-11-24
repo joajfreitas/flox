@@ -8,6 +8,15 @@ pub enum Token {
     Atom(String)
 }
 
+impl Token {
+    pub fn atom(&self) -> String {
+        match self {
+            Token::Atom(s) => s.clone(),
+            _ => panic!(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Scanner {
     tokens: Vec<String>,
@@ -65,7 +74,7 @@ mod tests {
     #[test]
     fn test_empty() {
         let mut scanner = Scanner::new("");
-        assert_eq!(dbg!(scanner.scan()), Some(Token::Atom("".to_string())));
+        assert_eq!(scanner.scan(), Some(Token::Atom("".to_string())));
     }
 
     #[test]
