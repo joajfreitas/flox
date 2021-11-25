@@ -61,15 +61,21 @@ impl VirtualMachine {
     fn run(&mut self, chunk: Chunk) -> Result<Value, VMErr> {
         self.ip=0;
         loop {
+            if !chunk.is_ip_in_range(self.ip) {
+                return Err(VMErr::RuntimeError(format!("Attemting to access unreachable bytecode. ip: {}, len: {}", self.ip, chunk.len())));
+            }
             if DEBUG == true {
-                let (s, _) = chunk.display_instruction(self.ip);
+                let (s, _) = chunk.display_instruction(self.ip).unwrap();
                 print!("{}", s);
                 println!("stack: {:?}", self.stack);
             }
-            let opcode = chunk.get_opcode(self.ip);
+            let opcode = chunk.get_opcode(self.ip).unwrap();
             match opcode {
                 OpCode::OpReturn => {
-                    return Ok(self.stack.pop().unwrap());
+                    match self.stack.pop() {
+                        Some(x) => return Ok(x),
+                        None => return Ok(Value::Nil),
+                    };
                 }
                 OpCode::OpConstant => {
                     let (_, value) = chunk.get_constant(self.ip+1);
@@ -119,5 +125,26 @@ impl VirtualMachine {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_empty() {
+        let mut vm = VirtualMachine::new();
+        let chunk = Chunk::new("test");
+        vm.interpret(chunk);
+    }
+
+    #[test]
+    fn test_basic() {
+        let mut vm = VirtualMachine::new();
+        let mut chunk = Chunk::new("test");
+        chunk.write_opcode(OpCode::OpReturn, 1);
+        vm.interpret(chunk);
+
     }
 }

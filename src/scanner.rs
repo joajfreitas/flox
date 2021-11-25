@@ -58,7 +58,7 @@ fn tokenize(source: &str) -> Vec<String> {
 
     let mut tokens: Vec<String> = Vec::new();
     for cap in RE.captures_iter(&source) {
-        if cap[1].starts_with(";") {
+        if cap[1].starts_with(";") || &cap[1] == "" {
             continue;
         }
         tokens.push(cap[1].to_string());
@@ -74,7 +74,7 @@ mod tests {
     #[test]
     fn test_empty() {
         let mut scanner = Scanner::new("");
-        assert_eq!(scanner.scan(), Some(Token::Atom("".to_string())));
+        assert_eq!(scanner.scan(), None);
     }
 
     #[test]

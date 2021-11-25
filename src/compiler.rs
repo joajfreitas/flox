@@ -12,7 +12,10 @@ pub fn compile(source: &str, chunk: &mut Chunk) {
 }
 
 pub fn parse(scanner: &mut Scanner, chunk: &mut Chunk) {
-    let token = scanner.peek().unwrap();
+    let token = match scanner.peek() {
+        Some(x) => x,
+        None => return,
+    };
 
     match &token {
         Token::LeftParen => read_seq(scanner, chunk),

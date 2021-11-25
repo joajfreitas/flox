@@ -261,7 +261,7 @@ impl fmt::Display for Chunk {
         write!(f, "==={}===\n", &self.name)?;
         let mut pc: usize = 0;
         loop {
-            let (s, inc) = self.display_instruction(pc);
+            let (s, inc) = self.display_instruction(pc).unwrap();
             pc += inc;
             write!(f, "{}", s)?;
             if pc >= self.code.len() {
@@ -339,9 +339,19 @@ impl Chunk {
         self.constants.len() - 1
     }
 
-    pub fn get_opcode(&self, index: usize) -> &OpCode {
-        match &self.code[index] {
-            Element::OpCode(opcode) => opcode,
+    pub fn len(&self) -> usize {
+        self.code.len()
+    }
+
+    pub fn is_ip_in_range(&self, ip: usize) -> bool {
+        return self.code.len() > ip;
+    }
+
+    pub fn get_opcode(&self, index: usize) -> Option<&OpCode> {
+        let op = self.code.get(index)?;
+
+        match &op {
+            Element::OpCode(opcode) => Some(opcode),
             _ => {
                 println!("{:?}", self.code[index]);
                 panic!();
@@ -367,7 +377,7 @@ impl Chunk {
     pub fn display_instruction(
         &self,
         index: usize,
-    ) -> (String, usize) {
+    ) -> Option<(String, usize)> {
 
         let mut s = String::new();
 
@@ -385,7 +395,7 @@ impl Chunk {
         }
 
 
-        let opcode = self.get_opcode(index);
+        let opcode = self.get_opcode(index)?;
         let (ss, i) = match opcode {
             OpCode::OpConstant => {
                 let (n, c) = self.get_constant(index + 1);
@@ -407,6 +417,6 @@ impl Chunk {
         };
 
         s.push_str(&ss);
-        (s, i)
+        Some((s, i))
     }
 }
