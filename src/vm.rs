@@ -122,6 +122,21 @@ impl VirtualMachine {
                     };
                     self.stack.push(value.clone());
                     self.ip += 2;
+                },
+                OpCode::OpJmpIfFalse => {
+                    let idx = chunk.get_constant_index(self.ip+1);
+                    let pred = self.stack.pop().unwrap();
+                    dbg!(self.ip);
+                    if dbg!(pred.get_bool()) == false {
+                        self.ip = idx as usize;
+                    }
+                    else {
+                        self.ip += 2;
+                    }
+                }
+                OpCode::OpJmp => {
+                    let idx = chunk.get_constant_index(self.ip+1);
+                    self.ip = idx as usize;
                 }
             }
         }

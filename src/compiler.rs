@@ -121,6 +121,24 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
             chunk.write_constant(idx as u8, 1);
             return;
         },
+        "if" => {
+            dbg!(scanner.scan().unwrap());
+            parse(scanner, chunk);
+            chunk.write_opcode(OpCode::OpJmpIfFalse, 1);
+            chunk.write_constant(0, 1); //placeholder
+            let branch_idx = chunk.get_current_index();
+            parse(scanner,chunk);
+            chunk.write_opcode(OpCode::OpJmp, 1);
+            chunk.write_constant(0,1); //placeholder
+            let jmp_idx = chunk.get_current_index();
+            let false_idx = jmp_idx + 1;
+            parse(scanner,chunk);
+            let end_idx = chunk.get_current_index() + 1;
+
+            chunk.rewrite_constant(branch_idx, false_idx as u8);
+            chunk.rewrite_constant(jmp_idx, end_idx as u8);
+            return;
+        }
         "not" => {
             scanner.scan().unwrap();
             unary(atom, scanner, chunk);

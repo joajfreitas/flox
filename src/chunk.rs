@@ -29,6 +29,8 @@ pub enum OpCode {
     OpNor,
     OpXor,
     OpXnor,
+    OpJmpIfFalse,
+    OpJmp,
 }
 
 #[derive(Debug, Clone)]
@@ -258,6 +260,8 @@ pub struct Chunk {
 
 impl fmt::Display for Chunk {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}\n", self.constants);
+        write!(f, "{:?}\n", self.code);
         write!(f, "==={}===\n", &self.name)?;
         let mut pc: usize = 0;
         loop {
@@ -286,6 +290,14 @@ impl Chunk {
         }
     }
 
+    pub fn get_code(&mut self) -> Vec<Element> {
+        return self.code.clone();
+    }
+
+    pub fn get_current_index(&self) -> usize {
+        return self.code.len() - 1;
+    }
+
     pub fn write(&mut self, element: Element, line: usize) {
         self.code.push(element);
         self.annotate_line(line)
@@ -297,6 +309,11 @@ impl Chunk {
 
     pub fn write_constant(&mut self, constant: u8, line: usize) {
         self.write(Element::Constant(constant), line);
+    }
+
+    pub fn rewrite_constant(&mut self, idx: usize, constant: u8) {
+        let line = self.get_line(idx);
+        self.code[idx] = Element::Constant(constant);
     }
 
     pub fn write_constant_long(&mut self, constant: usize, line: usize) {
@@ -353,17 +370,25 @@ impl Chunk {
         match &op {
             Element::OpCode(opcode) => Some(opcode),
             _ => {
-                println!("{:?}", self.code[index]);
+                println!("Expected opcode got: {:?}", self.code[index]);
                 panic!();
             },
         }
     }
 
-    pub fn get_constant(&self, index: usize) -> (usize, &Value) {
+    pub fn get_constant_index(&self, index: usize) -> u8 {
         match &self.code[index] {
-            Element::Constant(i) => (*i as usize, &self.constants[*i as usize]),
-            _ => panic!(),
+            Element::Constant(i) => *i,
+            _ => {
+                println!("Expected Constant got: {:?}", self.code[index]);
+                panic!();
+            }
         }
+    }
+
+    pub fn get_constant(&self, index: usize) -> (usize, &Value) {
+        let idx: usize = self.get_constant_index(index) as usize;
+        (idx, &self.constants[idx])
     }
 
     pub fn get_constant_long(&self, index: usize) -> Option<&Value> {
@@ -412,6 +437,10 @@ impl Chunk {
             OpCode::OpGetGlobal => {
                 let (n, c) = self.get_constant(index+1);
                 (format!("{:?} {}: '{}\n", opcode, n, c), 2)
+            }
+            OpCode::OpJmpIfFalse | OpCode::OpJmp => {
+                let idx = self.get_constant_index(index + 1);
+                (format!("{:?}: {}\n", opcode,idx), 2)
             }
             _ => (format!("{:?}\n", opcode), 1),
         };

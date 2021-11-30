@@ -90,7 +90,9 @@ fn opcode_to_string(opcode: OpCode) -> &'static str {
         OpCode::OpOr => "OR",
         OpCode::OpNor => "NOR",
         OpCode::OpXor => "XOR",
-        OpCode::OpXnor => "XNOR"
+        OpCode::OpXnor => "XNOR",
+        OpCode::OpJmpIfFalse => "JMPIF",
+        OpCode::OpJmp => "JMP",
     }
 }
 
@@ -121,6 +123,8 @@ fn string_to_opcode(s: &str) -> OpCode {
          "NOR"=> OpCode::OpNor,
          "XOR"=> OpCode::OpXor,
          "XNOR" => OpCode::OpXnor,
+         "JMPIF" => OpCode::OpJmpIfFalse,
+         "JMP" => OpCode::OpJmp,
          _ => panic!(),
     }
 
@@ -149,12 +153,14 @@ fn read_ir(content: &str) -> Option<Chunk> {
                 state = 0;
             }
             else {
-                let idx = dbg!(chunk.add_constant(Value::Number(0.0)));
-                chunk.write_constant(idx as u8, line as usize);
+                chunk.write_constant(0, line as usize);
             }
         }
     }
 
+    for element in chunk.get_code() {
+        println!("{:?}", element);
+    }
     println!("{}", chunk);
     return Some(chunk);
 }
@@ -177,9 +183,9 @@ mod tests {
         assert_eq!(tokenize("RET 10 \"ola\"\nRET 20"), vec!["RET", "10", "\"ola\"", "\n", "RET", "20", "\n"]);
     }
 
-    #[test]
-    fn test_empty() {
-        read_ir("ADD 2 2 \n RET");
-    }
+    //#[test]
+    //fn test_empty() {
+    //    read_ir("CONST 2\nADD 0 0 \n RET");
+    //}
 
 }
