@@ -1,6 +1,7 @@
 use std::fmt;
 use std::cmp::Ordering;
 use std::ops::{Not, Add, Sub, Mul, Div, BitAnd, BitOr, BitXor};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub enum OpCode {
@@ -54,8 +55,6 @@ impl Object {
         }
     }
 }
-
-
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -253,9 +252,12 @@ impl Element {
 #[derive(Debug, Clone)]
 pub struct Chunk {
     name: String,
-    pub code: Vec<Element>,
+    code: Vec<Element>,
     constants: Vec<Value>,
     lines: Vec<(usize, usize)>,
+    locals: HashMap<String, Value>,
+    functions: HashMap<String, Closure>,
+
 }
 
 impl fmt::Display for Chunk {
@@ -273,7 +275,6 @@ impl fmt::Display for Chunk {
             }
         }
 
-        //write!(f, "{:?}", self.lines)?;
         write!(f, "================")?;
 
         Ok(())
@@ -287,6 +288,8 @@ impl Chunk {
             code: Vec::new(),
             constants: Vec::new(),
             lines: Vec::new(),
+            locals: HashMap::new(),
+            functions: HashMap::new(),
         }
     }
 

@@ -144,6 +144,15 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
             unary(atom, scanner, chunk);
             return;
         },
+        "fn!" => {
+            dbg!(scanner.scan().unwrap());
+            dbg!(scanner.scan().unwrap());
+            dbg!(scanner.scan().unwrap());
+            dbg!(scanner.scan().unwrap());
+            parse(scanner, chunk);
+            dbg!(chunk.get_code());
+            panic!();
+        },
         _ => {},
     }
 
