@@ -10,6 +10,8 @@ pub enum OpCode {
     OpConstantLong,
     OpSetGlobal,
     OpGetGlobal,
+    OpSetLocal,
+    OpGetLocal,
     OpAdd,
     OpSubtract,
     OpMultiply,
@@ -296,6 +298,11 @@ impl Chunk {
     pub fn get_code(&mut self) -> Vec<Element> {
         return self.code.clone();
     }
+
+    pub fn get_locals(&mut self) -> &mut HashMap<String, Value> {
+        &mut self.locals
+    }
+
 
     pub fn get_current_index(&self) -> usize {
         return self.code.len() - 1;

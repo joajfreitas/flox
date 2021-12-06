@@ -54,11 +54,11 @@ impl VirtualMachine {
         }
     }
 
-    pub fn interpret(&mut self, chunk: Chunk) -> Result<Value, VMErr> {
+    pub fn interpret(&mut self, chunk: &mut Chunk) -> Result<Value, VMErr> {
         self.run(chunk)
     }
 
-    fn run(&mut self, chunk: Chunk) -> Result<Value, VMErr> {
+    fn run(&mut self, chunk: &mut Chunk) -> Result<Value, VMErr> {
         self.ip=0;
         loop {
             if !chunk.is_ip_in_range(self.ip) {
@@ -117,6 +117,22 @@ impl VirtualMachine {
                 OpCode::OpGetGlobal => {
                     let (_, value) = chunk.get_constant(self.ip+1);
                     let value = match self.globals.get(value.get_str()) {
+                        Some(v) => v,
+                        None => return Err(VMErr::RuntimeError(format!("cannot find global variable '{}'", value))),
+                    };
+                    self.stack.push(value.clone());
+                    self.ip += 2;
+                },
+                OpCode::OpSetLocal => {
+                    let v = self.stack.pop().unwrap();
+                    let (_, value) = chunk.get_constant(self.ip+1);
+                    chunk.get_locals().insert(value.get_str().to_string(), v.clone());
+                    self.stack.push(v);
+                    self.ip+=2;
+                },
+                OpCode::OpGetLocal => {
+                    let (_, value) = chunk.get_constant(self.ip+1);
+                    let value = match chunk.get_locals().get(value.get_str()) {
                         Some(v) => v,
                         None => return Err(VMErr::RuntimeError(format!("cannot find global variable '{}'", value))),
                     };

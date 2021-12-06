@@ -115,7 +115,7 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
             scanner.scan().unwrap(); //function name?
             let var_name = scanner.scan().unwrap().atom(); //first arg
             parse(scanner, chunk);
-            chunk.write_opcode(OpCode::OpSetGlobal, 0);
+            chunk.write_opcode(OpCode::OpSetLocal, 0);
            
             let idx = chunk.add_constant(Value::Obj(Box::new(Object::Str(var_name))));
             chunk.write_constant(idx as u8, 1);
@@ -171,7 +171,7 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
         return;
     }
     else {
-        chunk.write_opcode(OpCode::OpGetGlobal, 1);
+        chunk.write_opcode(OpCode::OpGetLocal, 1);
         let idx = chunk.add_constant(Value::Obj(Box::new(Object::Str(atom.clone()))));
         chunk.write_constant(idx as u8, 1);
         return;
