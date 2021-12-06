@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::rc::Rc;
 use crate::chunk::{Chunk, OpCode, Value};
 
 const DEBUG: bool = true;
@@ -7,6 +8,7 @@ pub struct VirtualMachine {
     ip: usize,
     stack: Vec<Value>,
     globals: HashMap<String, Value>,
+    locals: HashMap<String, HashMap<String, Value>>,
 }
 
 pub enum VMErr {
@@ -51,7 +53,20 @@ impl VirtualMachine {
             ip: 0,
             stack: Vec::new(),
             globals: HashMap::new(),
+            locals: HashMap::new(),
         }
+    }
+
+    pub fn set_local(&mut self, scope: String, key: String, value: Value) -> Option<Value>{
+        if !self.locals.contains_key(&key) {
+            self.locals.insert(scope.clone(), HashMap::new());
+        }
+
+        self.locals.get_mut(&scope).unwrap().insert(key, value)
+    }
+
+    pub fn get_local(&self, scope: String, key: String) -> Option<&Value> {
+        self.locals.get(&scope)?.get(&key)
     }
 
     pub fn interpret(&mut self, chunk: &mut Chunk) -> Result<Value, VMErr> {
@@ -126,15 +141,15 @@ impl VirtualMachine {
                 OpCode::OpSetLocal => {
                     let v = self.stack.pop().unwrap();
                     let (_, value) = chunk.get_constant(self.ip+1);
-                    chunk.get_locals().insert(value.get_str().to_string(), v.clone());
+                    self.set_local(chunk.get_name(), value.get_str().to_string(), v.clone());
                     self.stack.push(v);
                     self.ip+=2;
                 },
                 OpCode::OpGetLocal => {
-                    let (_, value) = chunk.get_constant(self.ip+1);
-                    let value = match chunk.get_locals().get(value.get_str()) {
+                    let (_, value) = chunk.get_constant(self.ip+1).clone();
+                    let value = match self.get_local(chunk.get_name(), value.get_str().to_string()){
                         Some(v) => v,
-                        None => return Err(VMErr::RuntimeError(format!("cannot find global variable '{}'", value))),
+                        None => return Err(VMErr::RuntimeError(format!("cannot find local variable '{}'", value))),
                     };
                     self.stack.push(value.clone());
                     self.ip += 2;
@@ -146,7 +161,7 @@ impl VirtualMachine {
                     if dbg!(pred.get_bool()) == false {
                         self.ip = idx as usize;
                     }
-                    else {
+                    else { 
                         self.ip += 2;
                     }
                 }

@@ -25,7 +25,7 @@ fn repl() {
                 let mut chunk = Chunk::new("test chunk");
                 compile(&line, &mut chunk);
                 println!("{}", chunk);
-                match vm.interpret(chunk) {
+                match vm.interpret(&mut chunk) {
                     Ok(v) => println!("{}", v),
                     Err(VMErr::RuntimeError(s)) => {
                         println!("Error: {}", s);
@@ -51,7 +51,7 @@ fn run_file(filename: String) {
     compile(&source, &mut chunk);
     println!("{}", chunk);
     let mut vm = VirtualMachine::new();
-    vm.interpret(chunk);
+    vm.interpret(&mut chunk);
 }
 
 fn main() {

@@ -295,12 +295,24 @@ impl Chunk {
         }
     }
 
+    pub fn get_name(&self) -> String {
+        self.name.clone()
+    }
+
     pub fn get_code(&mut self) -> Vec<Element> {
         return self.code.clone();
     }
 
     pub fn get_locals(&mut self) -> &mut HashMap<String, Value> {
         &mut self.locals
+    }
+
+    pub fn insert_local(&mut self, key: String, value: Value) -> Option<Value>{
+        self.locals.insert(key, value)
+    }
+
+    pub fn get_local(&self, key: String) -> Option<&Value>{
+        self.locals.get(&key)
     }
 
 
@@ -440,11 +452,11 @@ impl Chunk {
                 let value = self.get_constant_long(index + 1).unwrap();
                 (format!("{:?} '{}'\n", opcode, value), 4)
             },
-            OpCode::OpSetGlobal => {
+            OpCode::OpSetGlobal | OpCode::OpSetLocal => {
                 let (n, c) = self.get_constant(index + 1);
                 (format!("{:?} {}: '{}\n", opcode, n, c), 2)
             },
-            OpCode::OpGetGlobal => {
+            OpCode::OpGetGlobal | OpCode::OpGetLocal => {
                 let (n, c) = self.get_constant(index+1);
                 (format!("{:?} {}: '{}\n", opcode, n, c), 2)
             }
