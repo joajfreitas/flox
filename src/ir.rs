@@ -95,6 +95,7 @@ fn opcode_to_string(opcode: OpCode) -> &'static str {
         OpCode::OpXnor => "XNOR",
         OpCode::OpJmpIfFalse => "JMPIF",
         OpCode::OpJmp => "JMP",
+        OpCode::OpCall => "CALL",
     }
 }
 
@@ -129,6 +130,7 @@ fn string_to_opcode(s: &str) -> OpCode {
          "XNOR" => OpCode::OpXnor,
          "JMPIF" => OpCode::OpJmpIfFalse,
          "JMP" => OpCode::OpJmp,
+         "CALL" => OpCode::OpCall,
          _ => panic!(),
     }
 

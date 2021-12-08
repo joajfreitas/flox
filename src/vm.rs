@@ -168,7 +168,10 @@ impl VirtualMachine {
                 OpCode::OpJmp => {
                     let idx = chunk.get_constant_index(self.ip+1);
                     self.ip = idx as usize;
-                }
+                },
+                OpCode::OpCall => {
+                    panic!();
+                } 
             }
         }
     }

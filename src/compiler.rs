@@ -82,6 +82,27 @@ fn unescape_str(s: &str) -> String {
     .to_string()
 }
 
+fn read_shallow_list(scanner: &mut Scanner) -> Option<Vec<Token>> {
+    assert!(scanner.scan().unwrap() == Token::LeftParen);
+    let mut v: Vec<Token> = Vec::new();
+    loop {
+        let s = scanner.scan().unwrap();
+        if s == Token::RightParen {
+            break;
+        }
+
+        v.push(s);
+    }
+
+    Some(v)
+}
+
+fn parse_lambda(scanner: &mut Scanner) -> Option<Object> {
+    assert!(scanner.scan().unwrap() == Token::Atom("lambda".to_string()));
+    let args = dbg!(read_shallow_list(scanner));
+    None
+}
+
 fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
     lazy_static! {
         static ref int_re: Regex = Regex::new(r"^-?[0-9]+$").unwrap();
@@ -144,15 +165,19 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
             unary(atom, scanner, chunk);
             return;
         },
-        "fn!" => {
-            dbg!(scanner.scan().unwrap());
-            dbg!(scanner.scan().unwrap());
-            dbg!(scanner.scan().unwrap());
-            dbg!(scanner.scan().unwrap());
-            parse(scanner, chunk);
-            dbg!(chunk.get_code());
+        //"fn!" => {
+        //    dbg!(scanner.scan().unwrap());
+        //    dbg!(scanner.scan().unwrap());
+        //    dbg!(scanner.scan().unwrap());
+        //    dbg!(scanner.scan().unwrap());
+        //    parse(scanner, chunk);
+        //    dbg!(chunk.get_code());
+        //    panic!();
+        //},
+        "lambda" => {
+            dbg!(parse_lambda(scanner));
             panic!();
-        },
+        }
         _ => {},
     }
 

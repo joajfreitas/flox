@@ -34,6 +34,7 @@ pub enum OpCode {
     OpXnor,
     OpJmpIfFalse,
     OpJmp,
+    OpCall,
 }
 
 #[derive(Debug, Clone)]
