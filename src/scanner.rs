@@ -33,7 +33,7 @@ impl Scanner{
 
     pub fn scan(&mut self) -> Option<Token> {
         let token = self.peek();
-        self.pos = self.pos + 1;
+        self.pos += 1;
         token
     }
 
@@ -57,8 +57,8 @@ fn tokenize(source: &str) -> Vec<String> {
     }
 
     let mut tokens: Vec<String> = Vec::new();
-    for cap in RE.captures_iter(&source) {
-        if cap[1].starts_with(";") || &cap[1] == "" {
+    for cap in RE.captures_iter(source) {
+        if cap[1].starts_with(';') || cap[1].is_empty() {
             continue;
         }
         tokens.push(cap[1].to_string());

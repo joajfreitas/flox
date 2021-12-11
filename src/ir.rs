@@ -1,12 +1,11 @@
 use regex::Regex;
 use lazy_static::lazy_static;
 
-use crate::chunk::{Chunk, OpCode, Value};
+use crate::chunk::{Chunk, OpCode};
 
 
 pub struct IrScanner {
     tokens: Vec<String>,
-    line: usize,
     pos: usize,
 }
 
@@ -14,14 +13,13 @@ impl IrScanner {
     pub fn new(source: &str) -> IrScanner{
         IrScanner {
             tokens: tokenize(source),
-            line: 0,
             pos: 0,
         }
     }
 
     pub fn scan(&mut self) -> Option<String> {
         let token = self.peek();
-        self.pos = self.pos + 1;
+        self.pos += 1;
         token
     }
 
@@ -39,8 +37,8 @@ fn _tokenize(source: &str) -> Vec<String> {
     }
 
     let mut tokens: Vec<String> = Vec::new();
-    for cap in RE.captures_iter(&source) {
-        if cap[1].starts_with(";") || &cap[1] == "" {
+    for cap in RE.captures_iter(source) {
+        if cap[1].starts_with(';') || cap[1].is_empty() {
             continue;
         }
         tokens.push(cap[1].to_string());
@@ -50,7 +48,7 @@ fn _tokenize(source: &str) -> Vec<String> {
 
 
 fn tokenize(source: &str) -> Vec<String> {
-    let tokens = source.split("\n").map(|x| {
+    let tokens = source.split('\n').map(|x| {
         let mut tokens = _tokenize(x);
         tokens.push("\n".to_string());
         tokens
@@ -64,6 +62,7 @@ fn tokenize(source: &str) -> Vec<String> {
     v
 }
 
+#[allow(dead_code)]
 fn opcode_to_string(opcode: OpCode) -> &'static str {
     match opcode {
         OpCode::OpReturn => "RET",
@@ -99,6 +98,7 @@ fn opcode_to_string(opcode: OpCode) -> &'static str {
     }
 }
 
+#[allow(dead_code)]
 fn string_to_opcode(s: &str) -> OpCode {
     match s {
          "RET"=> OpCode::OpReturn,
@@ -136,6 +136,7 @@ fn string_to_opcode(s: &str) -> OpCode {
 
 }
 
+#[allow(dead_code)]
 fn read_ir(content: &str) -> Option<Chunk> {
     let mut scanner = IrScanner::new(content);
     let mut chunk = Chunk::new("test");
@@ -143,12 +144,7 @@ fn read_ir(content: &str) -> Option<Chunk> {
     let mut state: u8 = 0;
     let mut line: u32 = 0;
 
-    loop {
-        let token = match scanner.scan() {
-            Some(t) => t,
-            None => break,
-        };
-
+    while let Some(token) = scanner.scan() {
         dbg!(state);
         if state == 0 {
             chunk.write_opcode(string_to_opcode(&token), line as usize);
@@ -168,12 +164,12 @@ fn read_ir(content: &str) -> Option<Chunk> {
         println!("{:?}", element);
     }
     println!("{}", chunk);
-    return Some(chunk);
+    Some(chunk)
 }
 
-fn write_ir(chunk: &Chunk, filename: &str) -> Option<()>{
-    None
-}
+//fn write_ir(chunk: &Chunk, filename: &str) -> Option<()>{
+//    None
+//}
 
 #[cfg(test)]
 mod tests {

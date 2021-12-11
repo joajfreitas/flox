@@ -1,7 +1,8 @@
 use lazy_static::lazy_static;
 use regex::{Regex, Captures};
+use rand::Rng;
 
-use crate::chunk::{Chunk, OpCode, Value, Object};
+use crate::chunk::{Chunk, OpCode, Value, Object, Closure};
 use crate::scanner::{Scanner, Token};
 
 pub fn compile(source: &str, chunk: &mut Chunk) {
@@ -20,7 +21,7 @@ pub fn parse(scanner: &mut Scanner, chunk: &mut Chunk) {
     match &token {
         Token::LeftParen => read_seq(scanner, chunk),
         Token::RightParen => {println!("unexpected ')'"); panic!()},
-        Token::Atom(atom) => {
+        Token::Atom(_) => {
             scanner.scan().unwrap();
             read_atom(&token, scanner, chunk);
         },
@@ -65,7 +66,7 @@ pub fn read_seq(scanner: &mut Scanner, chunk: &mut Chunk) {
 
     let op = scanner.peek().unwrap();
     match op {
-        Token::Atom(ref atom) => read_atom(&op.clone(), scanner, chunk),
+        Token::Atom(_) => read_atom(&op, scanner, chunk),
         Token::LeftParen => parse(scanner, chunk),
         _ => panic!(),
     };
@@ -76,8 +77,8 @@ pub fn read_seq(scanner: &mut Scanner, chunk: &mut Chunk) {
 
 fn unescape_str(s: &str) -> String {
     let re: Regex = Regex::new(r#"\\(.)"#).unwrap();
-    re.replace_all(&s, |caps: &Captures| {
-        format!("{}", if &caps[1] == "n" { "\n" } else { &caps[1] })
+    re.replace_all(s, |caps: &Captures| {
+        (if &caps[1] == "n" { "\n" } else { &caps[1] }).to_string()
     })
     .to_string()
 }
@@ -99,14 +100,24 @@ fn read_shallow_list(scanner: &mut Scanner) -> Option<Vec<Token>> {
 
 fn parse_lambda(scanner: &mut Scanner) -> Option<Object> {
     assert!(scanner.scan().unwrap() == Token::Atom("lambda".to_string()));
-    let args = dbg!(read_shallow_list(scanner));
-    None
+    let args = dbg!(read_shallow_list(scanner).unwrap());
+
+    let mut rng =  rand::thread_rng();
+    let r: u32 = rng.gen();
+    let name = format!("f{}", r);
+    let mut closure = Closure {
+        params: args.iter().map(|x| {x.atom()}).collect::<Vec<String>>(),
+        chunk: Chunk::new(&name),
+        name 
+    };
+    parse(scanner, &mut closure.chunk);
+    Some(Object::Function(Box::new(closure)))
 }
 
 fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
     lazy_static! {
-        static ref int_re: Regex = Regex::new(r"^-?[0-9]+$").unwrap();
-        static ref str_re: Regex = Regex::new(r#""(?:\\.|[^\\"])*""#).unwrap();
+        static ref INT_RE: Regex = Regex::new(r"^-?[0-9]+$").unwrap();
+        static ref STR_RE: Regex = Regex::new(r#""(?:\\.|[^\\"])*""#).unwrap();
     }
 
     let atom = match atom {
@@ -165,15 +176,6 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
             unary(atom, scanner, chunk);
             return;
         },
-        //"fn!" => {
-        //    dbg!(scanner.scan().unwrap());
-        //    dbg!(scanner.scan().unwrap());
-        //    dbg!(scanner.scan().unwrap());
-        //    dbg!(scanner.scan().unwrap());
-        //    parse(scanner, chunk);
-        //    dbg!(chunk.get_code());
-        //    panic!();
-        //},
         "lambda" => {
             dbg!(parse_lambda(scanner));
             panic!();
@@ -181,27 +183,22 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
         _ => {},
     }
 
-    if int_re.is_match(&atom) {
+    if INT_RE.is_match(atom) {
         let i:i32 = atom.parse().unwrap();
         chunk.write_opcode(OpCode::OpConstant, 1);
         let constant = chunk.add_constant(Value::Number(i as f64));
         chunk.write_constant(constant as u8, 1);
-        return;
     }
-    else if str_re.is_match(&atom) {
+    else if STR_RE.is_match(atom) {
         chunk.write_opcode(OpCode::OpConstant, 1);
         let s = Object::Str(unescape_str(&atom[1..atom.len() - 1]));
         let constant = chunk.add_constant(Value::Obj(Box::new(s)));
         chunk.write_constant(constant as u8, 1);
-        return;
     }
     else {
         chunk.write_opcode(OpCode::OpGetLocal, 1);
         let idx = chunk.add_constant(Value::Obj(Box::new(Object::Str(atom.clone()))));
         chunk.write_constant(idx as u8, 1);
-        return;
     }
-
-    panic!();
 }
 

@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::rc::Rc;
 use crate::chunk::{Chunk, OpCode, Value};
 
 const DEBUG: bool = true;
@@ -79,7 +78,7 @@ impl VirtualMachine {
             if !chunk.is_ip_in_range(self.ip) {
                 return Err(VMErr::RuntimeError(format!("Attemting to access unreachable bytecode. ip: {}, len: {}", self.ip, chunk.len())));
             }
-            if DEBUG == true {
+            if DEBUG {
                 let (s, _) = chunk.display_instruction(self.ip).unwrap();
                 print!("{}", s);
                 println!("stack: {:?}", self.stack);
@@ -146,7 +145,7 @@ impl VirtualMachine {
                     self.ip+=2;
                 },
                 OpCode::OpGetLocal => {
-                    let (_, value) = chunk.get_constant(self.ip+1).clone();
+                    let (_, value) = chunk.get_constant(self.ip+1);
                     let value = match self.get_local(chunk.get_name(), value.get_str().to_string()){
                         Some(v) => v,
                         None => return Err(VMErr::RuntimeError(format!("cannot find local variable '{}'", value))),
@@ -158,7 +157,7 @@ impl VirtualMachine {
                     let idx = chunk.get_constant_index(self.ip+1);
                     let pred = self.stack.pop().unwrap();
                     dbg!(self.ip);
-                    if dbg!(pred.get_bool()) == false {
+                    if !dbg!(pred.get_bool()) {
                         self.ip = idx as usize;
                     }
                     else { 
@@ -174,6 +173,12 @@ impl VirtualMachine {
                 } 
             }
         }
+    }
+}
+
+impl Default for VirtualMachine {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

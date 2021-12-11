@@ -39,9 +39,9 @@ pub enum OpCode {
 
 #[derive(Debug, Clone)]
 pub struct Closure {
-    arity: u8,
-    chunk: Chunk,
-    name: String 
+    pub params: Vec<String>,
+    pub chunk: Chunk,
+    pub name: String 
 }
 
 #[derive(Debug, Clone)]
@@ -53,7 +53,7 @@ pub enum Object {
 impl Object {
     fn get_str(&self) -> &str {
         match self {
-            Object::Str(s) => &s,
+            Object::Str(s) => s,
             _ => panic!(),
         }
     }
@@ -90,24 +90,15 @@ impl Value {
     }
 
     pub fn is_nil(&self) -> bool {
-        match self {
-            Value::Nil => true,
-            _ => false,
-        }
+        matches!(self, Value::Nil)
     }
 
     pub fn is_number(&self) -> bool {
-        match self {
-            Value::Number(_) => true,
-            _ => false,
-        }
+        matches!(self, Value::Number(_))
     }
 
     pub fn is_bool(&self) -> bool {
-        match self {
-            Value::Bool(_) => true,
-            _ => false,
-        }
+        matches!(self ,Value::Bool(_))
     }
 }
 
@@ -117,10 +108,6 @@ impl PartialEq for Value {
             (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
             _ => panic!(),
         }
-    }
-
-    fn ne(&self, other: &Self) -> bool {
-        !self.eq(other)
     }
 }
 
@@ -265,9 +252,9 @@ pub struct Chunk {
 
 impl fmt::Display for Chunk {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}\n", self.constants);
-        write!(f, "{:?}\n", self.code);
-        write!(f, "==={}===\n", &self.name)?;
+        writeln!(f, "{:?}", self.constants)?;
+        writeln!(f, "{:?}", self.code)?;
+        writeln!(f, "==={}===", &self.name)?;
         let mut pc: usize = 0;
         loop {
             let (s, inc) = self.display_instruction(pc).unwrap();
@@ -301,7 +288,7 @@ impl Chunk {
     }
 
     pub fn get_code(&mut self) -> Vec<Element> {
-        return self.code.clone();
+        self.code.clone()
     }
 
     pub fn get_locals(&mut self) -> &mut HashMap<String, Value> {
@@ -318,7 +305,7 @@ impl Chunk {
 
 
     pub fn get_current_index(&self) -> usize {
-        return self.code.len() - 1;
+        self.code.len() - 1
     }
 
     pub fn write(&mut self, element: Element, line: usize) {
@@ -335,7 +322,6 @@ impl Chunk {
     }
 
     pub fn rewrite_constant(&mut self, idx: usize, constant: u8) {
-        let line = self.get_line(idx);
         self.code[idx] = Element::Constant(constant);
     }
 
@@ -345,11 +331,11 @@ impl Chunk {
         self.write
             (Element::Constant((constant >> 8 & 0xFF) as u8), line);
         self.write
-            (Element::Constant((constant >> 0 & 0xFF) as u8), line);
+            (Element::Constant((constant & 0xFF) as u8), line);
     }
 
     fn annotate_line(&mut self, line: usize) {
-        if self.lines.len() == 0 {
+        if self.lines.is_empty() {
             self.lines.push((line, 1));
         } else {
             let l = self.lines.len() - 1;
@@ -371,7 +357,7 @@ impl Chunk {
             }
         }
 
-        return &0;
+        &0
     }
 
     pub fn add_constant(&mut self, value: Value) -> usize {
@@ -383,8 +369,12 @@ impl Chunk {
         self.code.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.code.len() == 0
+    }
+
     pub fn is_ip_in_range(&self, ip: usize) -> bool {
-        return self.code.len() > ip;
+        self.code.len() > ip
     }
 
     pub fn get_opcode(&self, index: usize) -> Option<&OpCode> {
@@ -434,9 +424,7 @@ impl Chunk {
         if index > 0 && self.get_line(index) == self.get_line(index - 1) {
             s.push_str(&format!(
                 "{}| ",
-                std::iter::repeat(" ")
-                    .take(self.get_line(index).to_string().chars().count())
-                    .collect::<String>()
+                " ".repeat(self.get_line(index).to_string().chars().count())
             ));
         } else {
             s.push_str(&format!("{} ", self.get_line(index)));
