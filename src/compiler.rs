@@ -47,6 +47,7 @@ fn binary(op: &str, scanner: &mut Scanner, chunk: &mut Chunk) {
         "*" => chunk.write_opcode(OpCode::OpMultiply, 1),
         "/" => chunk.write_opcode(OpCode::OpDivide, 1),
         "=" => chunk.write_opcode(OpCode::OpEq, 1),
+        "!=" => chunk.write_opcode(OpCode::OpNe, 1),
         ">" => chunk.write_opcode(OpCode::OpBt, 1),
         ">=" => chunk.write_opcode(OpCode::OpBe, 1),
         "<" => chunk.write_opcode(OpCode::OpLt, 1),

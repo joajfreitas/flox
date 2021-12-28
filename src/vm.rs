@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use crate::chunk::{Chunk, OpCode, Value};
 
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 pub struct VirtualMachine {
     ip: usize,
@@ -189,8 +189,8 @@ mod tests {
     #[test]
     fn test_empty() {
         let mut vm = VirtualMachine::new();
-        let chunk = Chunk::new("test");
-        vm.interpret(chunk);
+        let mut chunk = Chunk::new("test");
+        vm.interpret(&mut chunk);
     }
 
     #[test]
@@ -198,7 +198,7 @@ mod tests {
         let mut vm = VirtualMachine::new();
         let mut chunk = Chunk::new("test");
         chunk.write_opcode(OpCode::OpReturn, 1);
-        vm.interpret(chunk);
+        vm.interpret(&mut chunk);
 
     }
 }

@@ -106,6 +106,7 @@ impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
+            (Value::Number(b1), Value::Number(b2)) => b1 == b2,
             _ => panic!(),
         }
     }

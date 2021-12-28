@@ -1,0 +1,104 @@
+[
+	{
+		"name": "Constants",
+		"tests": [
+			{
+				"name": "Numeric constant",
+				"input": "1",
+				"output": "1.0"
+			},
+			{
+				"name": "String constant",
+				"input": "'1'",
+				"output": "1"
+			}
+		]
+	},
+	{
+		"name": "Base functions",
+		"tests": [
+			{
+				"name": "Add",
+				"input": "(+ 1 1)",
+				"output": "2.0"
+
+			},
+			{
+				"name": "Sub",
+				"input": "(- 1 1)",
+				"output": "0.0"
+			},
+			{
+				"name": "Mul",
+				"input": "(* 1 1)",
+				"output": "1.0"
+			},
+			{
+				"name": "Div",
+				"input": "(/ 1 1)",
+				"output": "1.0"
+			},
+			{
+				"name": "Eq",
+				"input": "(= 1 1)",
+				"output": "true"
+			},
+			{
+				"name": "Ne",
+				"input": "(!= 1 1)",
+				"output": "false"
+			},
+			{
+				"name": "Bt",
+				"input": "(> 2 1)",
+				"output": "true"
+			},
+			{
+				"name": "Lt",
+				"input": "(< 0 1)",
+				"output": "true"
+			},
+			{
+				"name": "Be",
+				"input": "(>= 2 1)",
+				"output": "true"
+			},
+			{
+				"name": "Le",
+				"input": "(<= 0 1)",
+				"output": "true"
+			},
+			{
+				"name": "And",
+				"input": "(and true false)",
+				"output": "false"
+			},
+			{
+				"name": "Nand",
+				"input": "(nand false false)",
+				"output": "true"
+			},
+			{
+				"name": "Or",
+				"input": "(or true false)",
+				"output": "true"
+			},
+			{
+				"name": "Nor",
+				"input": "(nor true false)",
+				"output": "false"
+			},
+			{
+				"name": "xor",
+				"input": "(xor true false)",
+				"output": "true"
+			},
+			{
+				"name": "xnor",
+				"input": "(xnor true false)",
+				"output": "false"
+			}
+		]
+	}
+]
+
