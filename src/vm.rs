@@ -156,8 +156,7 @@ impl VirtualMachine {
                 OpCode::OpJmpIfFalse => {
                     let idx = chunk.get_constant_index(self.ip+1);
                     let pred = self.stack.pop().unwrap();
-                    dbg!(self.ip);
-                    if !dbg!(pred.get_bool()) {
+                    if !pred.get_bool() {
                         self.ip = idx as usize;
                     }
                     else { 

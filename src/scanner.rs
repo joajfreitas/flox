@@ -49,6 +49,10 @@ impl Scanner{
             _ => Token::Atom(token.to_string()),
         })
     }
+
+    pub fn next_tokens(&self) -> Vec<String> {
+        self.tokens[self.pos..].to_vec()
+    }
 }
 
 fn tokenize(source: &str) -> Vec<String> {

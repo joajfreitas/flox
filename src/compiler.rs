@@ -155,7 +155,7 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
             return;
         },
         "if" => {
-            dbg!(scanner.scan().unwrap());
+            scanner.scan().unwrap();
             parse(scanner, chunk);
             chunk.write_opcode(OpCode::OpJmpIfFalse, 1);
             chunk.write_constant(0, 1); //placeholder
@@ -177,8 +177,18 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
             unary(atom, scanner, chunk);
             return;
         },
+        "do" => {
+            scanner.scan().unwrap();
+            loop {
+                if scanner.peek().unwrap() == Token::RightParen {
+                    break
+                }
+                parse(scanner, chunk);
+            }
+            return;
+        },
         "lambda" => {
-            dbg!(parse_lambda(scanner));
+            let lambda = dbg!(parse_lambda(scanner));
             panic!();
         }
         _ => {},
