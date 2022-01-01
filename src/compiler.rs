@@ -188,9 +188,25 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
             return;
         },
         "lambda" => {
-            let lambda = dbg!(parse_lambda(scanner));
-            panic!();
-        }
+            chunk.write_opcode(OpCode::OpConstant, 1);
+            let lambda = dbg!(parse_lambda(scanner).unwrap());
+            let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
+            chunk.write_constant(idx as u8, 1);
+            return;
+            //panic!();
+        },
+        "apply" => {
+            scanner.scan().unwrap();
+            loop {
+                if scanner.peek().unwrap() == Token::RightParen {
+                    break
+                }
+                parse(scanner, chunk);
+            }
+
+            chunk.write_opcode(OpCode::OpCall, 1);
+            return ;
+        },
         _ => {},
     }
 

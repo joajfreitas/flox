@@ -57,6 +57,17 @@ impl Object {
             _ => panic!(),
         }
     }
+
+    fn get_function(&self) -> Box<Closure> {
+        match self {
+            Object::Function(f) => f.clone(),
+            _ => panic!(),
+        }
+    }
+
+    fn is_function(&self) -> bool {
+        matches!(self, Object::Function(_))
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -89,6 +100,14 @@ impl Value {
         }
     }
 
+    pub fn get_function(&self) -> Box<Closure> {
+        match self {
+            Value::Obj(obj) => obj.get_function(),
+            _ => panic!(),
+        }
+    }
+
+
     pub fn is_nil(&self) -> bool {
         matches!(self, Value::Nil)
     }
@@ -99,6 +118,13 @@ impl Value {
 
     pub fn is_bool(&self) -> bool {
         matches!(self ,Value::Bool(_))
+    }
+
+    pub fn is_function(&self) -> bool {
+        match self {
+            Value::Obj(f) => f.is_function(),
+            _ => false,
+        }
     }
 }
 
