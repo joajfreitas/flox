@@ -11,8 +11,6 @@ struct CallFrame {
 
 pub struct VirtualMachine {
     stack: Vec<Value>,
-    globals: HashMap<String, Value>,
-    locals: HashMap<String, HashMap<String, Value>>,
     frames: Vec<CallFrame>,
     fp: usize,
 }
@@ -57,23 +55,9 @@ impl VirtualMachine {
     pub fn new() -> VirtualMachine {
         VirtualMachine { 
             stack: Vec::new(),
-            globals: HashMap::new(),
-            locals: HashMap::new(),
             frames: Vec::new(),
             fp: 0,
         }
-    }
-
-    pub fn set_local(&mut self, scope: String, key: String, value: Value) -> Option<Value>{
-        if !self.locals.contains_key(&key) {
-            self.locals.insert(scope.clone(), HashMap::new());
-        }
-
-        self.locals.get_mut(&scope).unwrap().insert(key, value)
-    }
-
-    pub fn get_local(&self, scope: String, key: String) -> Option<&Value> {
-        self.locals.get(&scope)?.get(&key)
     }
 
     pub fn get_chunk(&self) -> Chunk {
@@ -103,6 +87,7 @@ impl VirtualMachine {
             stackpointer: 0,
         };
 
+        self.frames.pop(); //cleanup callstack
         self.frames.push(frame);
 
         loop {
@@ -154,36 +139,15 @@ impl VirtualMachine {
                 OpCode::OpNor => binary!(|x:Value,y:Value|{!(x | y)}, self, ip),
                 OpCode::OpXor => binary!(|x,y|{x ^ y}, self, ip),
                 OpCode::OpXnor => binary!(|x:Value,y:Value|{!(x ^ y)}, self, ip),
-                OpCode::OpSetGlobal => {
-                    let v = self.stack.pop().unwrap();
-                    let (_, value) = chunk.get_constant(ip+1);
-                    self.globals.insert(value.get_str().to_string(), v.clone());
-                    self.stack.push(v);
-                    self.set_ip(ip+2);
-                },
-                OpCode::OpGetGlobal => {
-                    let (_, value) = chunk.get_constant(ip+1);
-                    let value = match self.globals.get(value.get_str()) {
-                        Some(v) => v,
-                        None => return Err(VMErr::RuntimeError(format!("cannot find global variable '{}'", value))),
-                    };
-                    self.stack.push(value.clone());
-                    self.set_ip(ip+2);
-                },
                 OpCode::OpSetLocal => {
-                    let v = self.stack.pop().unwrap();
-                    let (_, value) = chunk.get_constant(ip+1);
-                    self.set_local(chunk.get_name(), value.get_str().to_string(), v.clone());
-                    self.stack.push(v);
+                    let value = self.stack.last().unwrap();
+                    let slot = chunk.get_constant_index(ip+1);
+                    self.stack[slot as usize] = value.clone();
                     self.set_ip(ip+2);
                 },
                 OpCode::OpGetLocal => {
-                    let (_, value) = chunk.get_constant(ip+1);
-                    let value = match self.get_local(chunk.get_name(), value.get_str().to_string()){
-                        Some(v) => v,
-                        None => return Err(VMErr::RuntimeError(format!("cannot find local variable '{}'", value))),
-                    };
-                    self.stack.push(value.clone());
+                    let slot = chunk.get_constant_index(ip+1);
+                    self.stack.push(self.stack[slot as usize].clone());
                     self.set_ip(ip+2);
                 },
                 OpCode::OpJmpIfFalse => {

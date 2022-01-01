@@ -8,8 +8,6 @@ pub enum OpCode {
     OpReturn,
     OpConstant,
     OpConstantLong,
-    OpSetGlobal,
-    OpGetGlobal,
     OpSetLocal,
     OpGetLocal,
     OpAdd,
@@ -96,7 +94,9 @@ impl Value {
     pub fn get_str(&self) -> &str {
         match self {
             Value::Obj(obj) => obj.get_str(),
-            _ => panic!(),
+            _ => {
+                panic!()
+            },
         }
     }
 
@@ -468,11 +468,11 @@ impl Chunk {
                 let value = self.get_constant_long(index + 1).unwrap();
                 (format!("{:?} '{}'\n", opcode, value), 4)
             },
-            OpCode::OpSetGlobal | OpCode::OpSetLocal => {
-                let (n, c) = self.get_constant(index + 1);
+            OpCode::OpSetLocal => {
+                let (n, c) = self.get_constant(index+1);
                 (format!("{:?} {}: '{}\n", opcode, n, c), 2)
             },
-            OpCode::OpGetGlobal | OpCode::OpGetLocal => {
+            OpCode::OpGetLocal => {
                 let (n, c) = self.get_constant(index+1);
                 (format!("{:?} {}: '{}\n", opcode, n, c), 2)
             }

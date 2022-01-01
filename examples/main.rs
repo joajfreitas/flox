@@ -22,6 +22,7 @@ fn repl() {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
                 rl.save_history(".flang-history").unwrap();
+
                 let mut chunk = Chunk::new("test chunk");
                 compile(&line, &mut chunk);
                 println!("{}", chunk);

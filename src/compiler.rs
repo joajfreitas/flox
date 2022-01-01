@@ -1,45 +1,73 @@
 use lazy_static::lazy_static;
 use regex::{Regex, Captures};
 use rand::Rng;
+use std::collections::HashMap;
 
 use crate::chunk::{Chunk, OpCode, Value, Object, Closure};
 use crate::scanner::{Scanner, Token};
 
+struct Compiler {
+    locals: Vec<String>,
+}
+
+impl Compiler {
+    fn set_local(&mut self, name: String) -> usize {
+        self.locals.push(name);
+        self.locals.len() - 1
+
+    }
+
+    fn get_local(&mut self, name: String) -> Option<usize> {
+        dbg!(&self.locals);
+        dbg!(&name);
+        for (i, local) in self.locals.iter().enumerate().rev() {
+            if local == &name {
+                return Some(i);
+            }
+        }
+
+        return None;
+    }
+}
+
 pub fn compile(source: &str, chunk: &mut Chunk) {
     let mut scanner = Scanner::new(source);
+    let mut compiler = Compiler {
+        locals: Vec::new(),
+    };
 
-    parse(&mut scanner, chunk);
+    parse(&mut scanner, chunk, &mut compiler);
     chunk.write_opcode(OpCode::OpReturn, 1);
 }
 
-pub fn parse(scanner: &mut Scanner, chunk: &mut Chunk) {
+fn parse(scanner: &mut Scanner, chunk: &mut Chunk, compiler: &mut Compiler) {
     let token = match scanner.peek() {
         Some(x) => x,
         None => return,
     };
 
     match &token {
-        Token::LeftParen => read_seq(scanner, chunk),
+        Token::LeftParen => read_seq(scanner, chunk, compiler),
         Token::RightParen => {println!("unexpected ')'"); panic!()},
         Token::Atom(_) => {
             scanner.scan().unwrap();
-            read_atom(&token, scanner, chunk);
+            read_atom(&token, scanner, chunk, compiler);
         },
     }
 }
 
 
-fn unary(op: &str, scanner: &mut Scanner, chunk: &mut Chunk) {
-    parse(scanner, chunk);
+fn unary(op: &str, scanner: &mut Scanner, chunk: &mut Chunk, compiler: &mut Compiler) {
+    parse(scanner, chunk, compiler);
     match op {
         "not" => chunk.write_opcode(OpCode::OpNot, 1),
         _ => panic!(),
     }
 }
 
-fn binary(op: &str, scanner: &mut Scanner, chunk: &mut Chunk) {
-    parse(scanner, chunk);
-    parse(scanner, chunk);
+fn binary(op: &str, scanner: &mut Scanner, chunk: &mut Chunk, compiler: &mut Compiler) {
+    parse(scanner, chunk, compiler);
+    parse(scanner, chunk, compiler);
 
     match op {
         "+" => chunk.write_opcode(OpCode::OpAdd, 1),
@@ -62,13 +90,13 @@ fn binary(op: &str, scanner: &mut Scanner, chunk: &mut Chunk) {
     };
 }
 
-pub fn read_seq(scanner: &mut Scanner, chunk: &mut Chunk) {
+fn read_seq(scanner: &mut Scanner, chunk: &mut Chunk, compiler: &mut Compiler) {
     let _ = scanner.scan();
 
     let op = scanner.peek().unwrap();
     match op {
-        Token::Atom(_) => read_atom(&op, scanner, chunk),
-        Token::LeftParen => parse(scanner, chunk),
+        Token::Atom(_) => read_atom(&op, scanner, chunk, compiler),
+        Token::LeftParen => parse(scanner, chunk, compiler),
         _ => panic!(),
     };
 
@@ -99,7 +127,7 @@ fn read_shallow_list(scanner: &mut Scanner) -> Option<Vec<Token>> {
     Some(v)
 }
 
-fn parse_lambda(scanner: &mut Scanner) -> Option<Object> {
+fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Option<Object> {
     assert!(scanner.scan().unwrap() == Token::Atom("lambda".to_string()));
     let args = dbg!(read_shallow_list(scanner).unwrap());
 
@@ -111,11 +139,11 @@ fn parse_lambda(scanner: &mut Scanner) -> Option<Object> {
         chunk: Chunk::new(&name),
         name 
     };
-    parse(scanner, &mut closure.chunk);
+    parse(scanner, &mut closure.chunk, compiler);
     Some(Object::Function(Box::new(closure)))
 }
 
-fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
+fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk, compiler: &mut Compiler) {
     lazy_static! {
         static ref INT_RE: Regex = Regex::new(r"^-?[0-9]+$").unwrap();
         static ref STR_RE: Regex = Regex::new(r#""(?:\\.|[^\\"])*""#).unwrap();
@@ -141,31 +169,30 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
         },
         "+" | "-" | "*" | "/" | "=" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "nand" | "or" | "nor" | "xor" | "xnor"  => { 
             scanner.scan().unwrap();
-            binary(atom, scanner, chunk);
+            binary(atom, scanner, chunk, compiler);
             return;
         },
         "set!" => {
             scanner.scan().unwrap(); //function name?
-            let var_name = scanner.scan().unwrap().atom(); //first arg
-            parse(scanner, chunk);
+            let var_name = dbg!(scanner.scan().unwrap().atom()); //first arg
+            parse(scanner, chunk, compiler);
+            let idx = compiler.set_local(var_name.clone());
             chunk.write_opcode(OpCode::OpSetLocal, 0);
-           
-            let idx = chunk.add_constant(Value::Obj(Box::new(Object::Str(var_name))));
-            chunk.write_constant(idx as u8, 1);
+            chunk.write_constant(idx as u8, 0);
             return;
         },
         "if" => {
             scanner.scan().unwrap();
-            parse(scanner, chunk);
+            parse(scanner, chunk, compiler);
             chunk.write_opcode(OpCode::OpJmpIfFalse, 1);
             chunk.write_constant(0, 1); //placeholder
             let branch_idx = chunk.get_current_index();
-            parse(scanner,chunk);
+            parse(scanner,chunk, compiler);
             chunk.write_opcode(OpCode::OpJmp, 1);
             chunk.write_constant(0,1); //placeholder
             let jmp_idx = chunk.get_current_index();
             let false_idx = jmp_idx + 1;
-            parse(scanner,chunk);
+            parse(scanner,chunk, compiler);
             let end_idx = chunk.get_current_index() + 1;
 
             chunk.rewrite_constant(branch_idx, false_idx as u8);
@@ -174,7 +201,7 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
         }
         "not" => {
             scanner.scan().unwrap();
-            unary(atom, scanner, chunk);
+            unary(atom, scanner, chunk, compiler);
             return;
         },
         "do" => {
@@ -183,13 +210,13 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
                 if scanner.peek().unwrap() == Token::RightParen {
                     break
                 }
-                parse(scanner, chunk);
+                parse(scanner, chunk, compiler);
             }
             return;
         },
         "lambda" => {
             chunk.write_opcode(OpCode::OpConstant, 1);
-            let lambda = dbg!(parse_lambda(scanner).unwrap());
+            let lambda = dbg!(parse_lambda(scanner, compiler).unwrap());
             let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
             chunk.write_constant(idx as u8, 1);
             return;
@@ -201,7 +228,7 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
                 if scanner.peek().unwrap() == Token::RightParen {
                     break
                 }
-                parse(scanner, chunk);
+                parse(scanner, chunk, compiler);
             }
 
             chunk.write_opcode(OpCode::OpCall, 1);
@@ -224,7 +251,13 @@ fn read_atom(atom: &Token, scanner: &mut Scanner, chunk: &mut Chunk) {
     }
     else {
         chunk.write_opcode(OpCode::OpGetLocal, 1);
-        let idx = chunk.add_constant(Value::Obj(Box::new(Object::Str(atom.clone()))));
+        let idx = match compiler.get_local(atom.to_string()) {
+            Some(idx) => idx,
+            None => {
+                println!("Symbol {} is not defined", atom);
+                panic!();
+            },
+        };
         chunk.write_constant(idx as u8, 1);
     }
 }
