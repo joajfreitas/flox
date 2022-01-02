@@ -39,7 +39,6 @@ impl Compiler {
 pub fn compile(source: &str, chunk: &mut Chunk) -> Result<(), String> {
     let mut scanner = Scanner::new(source);
     let mut compiler = Compiler::new(None);
-
     parse(&mut scanner, chunk, &mut compiler)?;
     chunk.write_opcode(OpCode::OpReturn, 1);
 
