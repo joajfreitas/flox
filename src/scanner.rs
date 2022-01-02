@@ -1,11 +1,11 @@
-use regex::Regex;
 use lazy_static::lazy_static;
+use regex::Regex;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     LeftParen,
     RightParen,
-    Atom(String)
+    Atom(String),
 }
 
 impl Token {
@@ -23,7 +23,7 @@ pub struct Scanner {
     pos: usize,
 }
 
-impl Scanner{
+impl Scanner {
     pub fn new(source: &str) -> Scanner {
         Scanner {
             tokens: tokenize(source),
@@ -57,7 +57,10 @@ impl Scanner{
 
 fn tokenize(source: &str) -> Vec<String> {
     lazy_static! {
-        static ref RE:regex::Regex = Regex::new(r###"[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)"###).unwrap();
+        static ref RE: regex::Regex = Regex::new(
+            r###"[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)"###
+        )
+        .unwrap();
     }
 
     let mut tokens: Vec<String> = Vec::new();
@@ -69,7 +72,6 @@ fn tokenize(source: &str) -> Vec<String> {
     }
     tokens
 }
-
 
 #[cfg(test)]
 mod tests {

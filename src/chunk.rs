@@ -1,7 +1,7 @@
-use std::fmt;
 use std::cmp::Ordering;
-use std::ops::{Not, Add, Sub, Mul, Div, BitAnd, BitOr, BitXor};
 use std::collections::HashMap;
+use std::fmt;
+use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Not, Sub};
 
 #[derive(Debug, Clone)]
 pub enum OpCode {
@@ -39,13 +39,13 @@ pub enum OpCode {
 pub struct Closure {
     pub params: Vec<String>,
     pub chunk: Chunk,
-    pub name: String 
+    pub name: String,
 }
 
 #[derive(Debug, Clone)]
 pub enum Object {
     Str(String),
-    Function(Box<Closure>)
+    Function(Box<Closure>),
 }
 
 impl Object {
@@ -73,7 +73,7 @@ pub enum Value {
     Number(f64),
     Bool(bool),
     Nil,
-    Obj(Box<Object>)
+    Obj(Box<Object>),
 }
 
 impl Value {
@@ -96,7 +96,7 @@ impl Value {
             Value::Obj(obj) => obj.get_str(),
             _ => {
                 panic!()
-            },
+            }
         }
     }
 
@@ -107,7 +107,6 @@ impl Value {
         }
     }
 
-
     pub fn is_nil(&self) -> bool {
         matches!(self, Value::Nil)
     }
@@ -117,7 +116,7 @@ impl Value {
     }
 
     pub fn is_bool(&self) -> bool {
-        matches!(self ,Value::Bool(_))
+        matches!(self, Value::Bool(_))
     }
 
     pub fn is_function(&self) -> bool {
@@ -241,11 +240,9 @@ impl fmt::Display for Value {
             Value::Number(value) => write!(f, "{:.1}", value),
             Value::Bool(value) => write!(f, "{:1}", value),
             Value::Nil => write!(f, "nil"),
-            Value::Obj(obj) => {
-                match &**obj {
-                    Object::Str(s) => write!(f, "{:1}", s),
-                    Object::Function(_) => write!(f, "function"),
-                }
+            Value::Obj(obj) => match &**obj {
+                Object::Str(s) => write!(f, "{:1}", s),
+                Object::Function(_) => write!(f, "function"),
             },
         }
     }
@@ -274,7 +271,6 @@ pub struct Chunk {
     lines: Vec<(usize, usize)>,
     locals: HashMap<String, Value>,
     functions: HashMap<String, Closure>,
-
 }
 
 impl fmt::Display for Chunk {
@@ -322,14 +318,13 @@ impl Chunk {
         &mut self.locals
     }
 
-    pub fn insert_local(&mut self, key: String, value: Value) -> Option<Value>{
+    pub fn insert_local(&mut self, key: String, value: Value) -> Option<Value> {
         self.locals.insert(key, value)
     }
 
-    pub fn get_local(&self, key: String) -> Option<&Value>{
+    pub fn get_local(&self, key: String) -> Option<&Value> {
         self.locals.get(&key)
     }
-
 
     pub fn get_current_index(&self) -> usize {
         self.code.len() - 1
@@ -353,12 +348,9 @@ impl Chunk {
     }
 
     pub fn write_constant_long(&mut self, constant: usize, line: usize) {
-        self.write
-            (Element::Constant((constant >> 16 & 0xFF) as u8), line);
-        self.write
-            (Element::Constant((constant >> 8 & 0xFF) as u8), line);
-        self.write
-            (Element::Constant((constant & 0xFF) as u8), line);
+        self.write(Element::Constant((constant >> 16 & 0xFF) as u8), line);
+        self.write(Element::Constant((constant >> 8 & 0xFF) as u8), line);
+        self.write(Element::Constant((constant & 0xFF) as u8), line);
     }
 
     fn annotate_line(&mut self, line: usize) {
@@ -412,7 +404,7 @@ impl Chunk {
             _ => {
                 println!("Expected opcode got: {:?}", self.code[index]);
                 panic!();
-            },
+            }
         }
     }
 
@@ -439,11 +431,7 @@ impl Chunk {
         Some(&self.constants[index as usize])
     }
 
-    pub fn display_instruction(
-        &self,
-        index: usize,
-    ) -> Option<(String, usize)> {
-
+    pub fn display_instruction(&self, index: usize) -> Option<(String, usize)> {
         let mut s = String::new();
 
         s.push_str(&format!("{:0>4} ", index));
@@ -457,7 +445,6 @@ impl Chunk {
             s.push_str(&format!("{} ", self.get_line(index)));
         }
 
-
         let opcode = self.get_opcode(index)?;
         let (ss, i) = match opcode {
             OpCode::OpConstant => {
@@ -467,18 +454,18 @@ impl Chunk {
             OpCode::OpConstantLong => {
                 let value = self.get_constant_long(index + 1).unwrap();
                 (format!("{:?} '{}'\n", opcode, value), 4)
-            },
+            }
             OpCode::OpSetLocal => {
-                let (n, c) = self.get_constant(index+1);
+                let (n, c) = self.get_constant(index + 1);
                 (format!("{:?} {}: '{}\n", opcode, n, c), 2)
-            },
+            }
             OpCode::OpGetLocal => {
-                let (n, c) = self.get_constant(index+1);
+                let (n, c) = self.get_constant(index + 1);
                 (format!("{:?} {}: '{}\n", opcode, n, c), 2)
             }
             OpCode::OpJmpIfFalse | OpCode::OpJmp => {
                 let idx = self.get_constant_index(index + 1);
-                (format!("{:?}: {}\n", opcode,idx), 2)
+                (format!("{:?}: {}\n", opcode, idx), 2)
             }
             _ => (format!("{:?}\n", opcode), 1),
         };

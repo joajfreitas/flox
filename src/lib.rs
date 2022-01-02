@@ -1,8 +1,8 @@
 pub mod chunk;
-pub mod vm;
-pub mod scanner;
 pub mod compiler;
 pub mod ir;
+pub mod scanner;
+pub mod vm;
 
 pub fn rep(input: &str, debug: bool) -> Result<String, String> {
     let mut chk = chunk::Chunk::new("test chunk");
@@ -23,5 +23,4 @@ mod tests {
     fn test_empty() {
         assert_eq!(rep("(+ 1 1)", false).unwrap(), "2.0".to_string());
     }
-
 }
