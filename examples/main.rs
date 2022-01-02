@@ -9,14 +9,14 @@ use clap::Parser;
 
 use flox::chunk::{Chunk, OpCode, Value};
 use flox::compiler::compile;
-use flox::vm::{VirtualMachine, VMErr};
+use flox::vm::{VMErr, VirtualMachine};
 
 #[derive(Parser, Debug)]
 #[clap(about, version, author)]
 struct Args {
     #[clap(short, long)]
     debug: bool,
-    file: Option<String>
+    file: Option<String>,
 }
 
 fn repl(debug: bool) {
@@ -41,15 +41,15 @@ fn repl(debug: bool) {
                     Err(VMErr::RuntimeError(s)) => {
                         println!("Error: {}", s);
                         continue;
-                    },
+                    }
                     _ => continue,
                 };
-            },
+            }
             Err(ReadlineError::Interrupted) => break,
             Err(ReadlineError::Eof) => break,
             Err(err) => {
                 println!("Error: {:?}", err);
-                break
+                break;
             }
         }
     }
@@ -69,8 +69,7 @@ fn main() {
     let args = Args::parse();
     if args.file.is_some() {
         run_file(args.file.unwrap(), args.debug);
-    }
-    else {
+    } else {
         repl(args.debug);
     }
 }

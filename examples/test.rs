@@ -3,7 +3,6 @@ use std::fs;
 use std::io;
 use std::io::{Error, ErrorKind};
 
-
 use serde::{Deserialize, Serialize};
 use serde_json;
 
@@ -11,17 +10,16 @@ use colored::Colorize;
 
 use clap::Parser;
 
-use flox::vm::VMErr;
 use flox::rep;
+use flox::vm::VMErr;
 
 #[derive(Parser, Debug)]
 #[clap(about, version, author)]
 struct Args {
     #[clap(short, long)]
     debug: bool,
-    file: String
+    file: String,
 }
-
 
 #[derive(Serialize, Deserialize)]
 struct Suite {
@@ -29,52 +27,59 @@ struct Suite {
     name: String,
 }
 
-
 #[derive(Serialize, Deserialize)]
 struct Test {
     input: String,
     output: String,
-    name: String, 
+    name: String,
     enabled: Option<bool>,
-    err: Option<String>
+    err: Option<String>,
 }
 
 fn validate_ok(output: String, test: &Test) -> (bool, bool) {
-    if  output == test.output {
+    if output == test.output {
         println!("\t✔ {}", test.name);
-    }
-    else {
+    } else {
         match test.enabled {
             Some(false) => {
-                println!("\t ⚠️  {}:  {} -> {} | {}", test.name, test.input, output, test.output);
+                println!(
+                    "\t ⚠️  {}:  {} -> {} | {}",
+                    test.name, test.input, output, test.output
+                );
                 return (true, false);
-            },
+            }
             Some(true) | None => {
-                println!("\t ❌ {}:  {} -> {} | {}", test.name, test.input, output, test.output);
-                return (false,true);
+                println!(
+                    "\t ❌ {}:  {} -> {} | {}",
+                    test.name, test.input, output, test.output
+                );
+                return (false, true);
             }
         }
     }
 
-    return (false, false)
+    return (false, false);
 }
 
 fn validate_err(err: String, test: &Test) -> (bool, bool) {
     let expected_output = if test.err.is_none() {
         test.output.clone()
-    }
-    else {
+    } else {
         test.err.clone().unwrap()
     };
-    
 
-    if test.err.as_ref().is_none() || &err != test.err.as_ref().unwrap()  {
+    if test.err.as_ref().is_none() || &err != test.err.as_ref().unwrap() {
         if test.enabled == Some(false) {
-            println!("\t ⚠️  {}:  {} -> {} | {}", test.name, test.input, err, expected_output);
+            println!(
+                "\t ⚠️  {}:  {} -> {} | {}",
+                test.name, test.input, err, expected_output
+            );
             return (true, false);
-        }
-        else {
-            println!("\t ❌ {}:  {} -> {} | {}", test.name, test.input, err, expected_output);
+        } else {
+            println!(
+                "\t ❌ {}:  {} -> {} | {}",
+                test.name, test.input, err, expected_output
+            );
             return (false, true);
         }
     }
@@ -115,14 +120,12 @@ fn main() -> Result<(), std::io::Error> {
         }
     }
 
-
     println!("\n⚠️  warnings: {}/{}", warning_count, test_count);
     println!("❌ errors: {}/{}", error_count, test_count);
 
-    if error_count > 0  {
+    if error_count > 0 {
         Err(Error::new(ErrorKind::Other, "Tests failed!"))
-    }
-    else {
+    } else {
         Ok(())
     }
 }

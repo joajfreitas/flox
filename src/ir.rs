@@ -1,8 +1,7 @@
-use regex::Regex;
 use lazy_static::lazy_static;
+use regex::Regex;
 
 use crate::chunk::{Chunk, OpCode};
-
 
 pub struct IrScanner {
     tokens: Vec<String>,
@@ -10,7 +9,7 @@ pub struct IrScanner {
 }
 
 impl IrScanner {
-    pub fn new(source: &str) -> IrScanner{
+    pub fn new(source: &str) -> IrScanner {
         IrScanner {
             tokens: tokenize(source),
             pos: 0,
@@ -33,7 +32,10 @@ impl IrScanner {
 
 fn _tokenize(source: &str) -> Vec<String> {
     lazy_static! {
-        static ref RE:regex::Regex = Regex::new(r###"[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)"###).unwrap();
+        static ref RE: regex::Regex = Regex::new(
+            r###"[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)"###
+        )
+        .unwrap();
     }
 
     let mut tokens: Vec<String> = Vec::new();
@@ -46,13 +48,15 @@ fn _tokenize(source: &str) -> Vec<String> {
     tokens
 }
 
-
 fn tokenize(source: &str) -> Vec<String> {
-    let tokens = source.split('\n').map(|x| {
-        let mut tokens = _tokenize(x);
-        tokens.push("\n".to_string());
-        tokens
-    }).collect::<Vec<Vec<String>>>();
+    let tokens = source
+        .split('\n')
+        .map(|x| {
+            let mut tokens = _tokenize(x);
+            tokens.push("\n".to_string());
+            tokens
+        })
+        .collect::<Vec<Vec<String>>>();
 
     let mut v: Vec<String> = Vec::new();
 
@@ -66,7 +70,7 @@ fn tokenize(source: &str) -> Vec<String> {
 fn opcode_to_string(opcode: OpCode) -> &'static str {
     match opcode {
         OpCode::OpReturn => "RET",
-        OpCode::OpConstant => "CONST" ,
+        OpCode::OpConstant => "CONST",
         OpCode::OpConstantLong => "CONST_LONG",
         OpCode::OpSetLocal => "SETLOCAL",
         OpCode::OpGetLocal => "GETLOCAL",
@@ -99,44 +103,43 @@ fn opcode_to_string(opcode: OpCode) -> &'static str {
 #[allow(dead_code)]
 fn string_to_opcode(s: &str) -> OpCode {
     match s {
-         "RET"=> OpCode::OpReturn,
-         "CONST" => OpCode::OpConstant,
-         "CONST_LONG"=> OpCode::OpConstantLong,
-         "SETLOCAL"=> OpCode::OpSetLocal,
-         "GETLOCAL"=> OpCode::OpGetLocal,
-         "ADD"=> OpCode::OpAdd,
-         "SUB"=> OpCode::OpSubtract,
-         "MUL"=> OpCode::OpMultiply,
-         "DIV"=> OpCode::OpDivide,
-         "NIL"=> OpCode::OpNil,
-         "TRUE"=> OpCode::OpTrue,
-         "FALSE"=> OpCode::OpFalse,
-         "NOT"=> OpCode::OpNot,
-         "EQ"=> OpCode::OpEq,
-         "NE"=> OpCode::OpNe,
-         "BT"=> OpCode::OpBt,
-         "LT"=> OpCode::OpLt,
-         "BE"=> OpCode::OpBe,
-         "LE"=> OpCode::OpLe,
-         "AND"=> OpCode::OpAnd,
-         "NAND"=> OpCode::OpNand,
-         "OR"=> OpCode::OpOr,
-         "NOR"=> OpCode::OpNor,
-         "XOR"=> OpCode::OpXor,
-         "XNOR" => OpCode::OpXnor,
-         "JMPIF" => OpCode::OpJmpIfFalse,
-         "JMP" => OpCode::OpJmp,
-         "CALL" => OpCode::OpCall,
-         _ => panic!(),
+        "RET" => OpCode::OpReturn,
+        "CONST" => OpCode::OpConstant,
+        "CONST_LONG" => OpCode::OpConstantLong,
+        "SETLOCAL" => OpCode::OpSetLocal,
+        "GETLOCAL" => OpCode::OpGetLocal,
+        "ADD" => OpCode::OpAdd,
+        "SUB" => OpCode::OpSubtract,
+        "MUL" => OpCode::OpMultiply,
+        "DIV" => OpCode::OpDivide,
+        "NIL" => OpCode::OpNil,
+        "TRUE" => OpCode::OpTrue,
+        "FALSE" => OpCode::OpFalse,
+        "NOT" => OpCode::OpNot,
+        "EQ" => OpCode::OpEq,
+        "NE" => OpCode::OpNe,
+        "BT" => OpCode::OpBt,
+        "LT" => OpCode::OpLt,
+        "BE" => OpCode::OpBe,
+        "LE" => OpCode::OpLe,
+        "AND" => OpCode::OpAnd,
+        "NAND" => OpCode::OpNand,
+        "OR" => OpCode::OpOr,
+        "NOR" => OpCode::OpNor,
+        "XOR" => OpCode::OpXor,
+        "XNOR" => OpCode::OpXnor,
+        "JMPIF" => OpCode::OpJmpIfFalse,
+        "JMP" => OpCode::OpJmp,
+        "CALL" => OpCode::OpCall,
+        _ => panic!(),
     }
-
 }
 
 #[allow(dead_code)]
 fn read_ir(content: &str) -> Option<Chunk> {
     let mut scanner = IrScanner::new(content);
     let mut chunk = Chunk::new("test");
-   
+
     let mut state: u8 = 0;
     let mut line: u32 = 0;
 
@@ -147,10 +150,9 @@ fn read_ir(content: &str) -> Option<Chunk> {
             state = 1;
         } else if state == 1 {
             if token == "\n" {
-                line+=1;
+                line += 1;
                 state = 0;
-            }
-            else {
+            } else {
                 chunk.write_constant(0, line as usize);
             }
         }
@@ -173,17 +175,22 @@ mod tests {
 
     #[test]
     fn test_tokenize() {
-        assert_eq!(tokenize("RET 10 \"ola\""), vec!["RET", "10", "\"ola\"", "\n"]);
+        assert_eq!(
+            tokenize("RET 10 \"ola\""),
+            vec!["RET", "10", "\"ola\"", "\n"]
+        );
     }
 
     #[test]
     fn test_tokenize_with_newline() {
-        assert_eq!(tokenize("RET 10 \"ola\"\nRET 20"), vec!["RET", "10", "\"ola\"", "\n", "RET", "20", "\n"]);
+        assert_eq!(
+            tokenize("RET 10 \"ola\"\nRET 20"),
+            vec!["RET", "10", "\"ola\"", "\n", "RET", "20", "\n"]
+        );
     }
 
     //#[test]
     //fn test_empty() {
     //    read_ir("CONST 2\nADD 0 0 \n RET");
     //}
-
 }

@@ -37,3 +37,18 @@ jobs:
     - uses: Swatinem/rust-cache@v1
     - name: Unit tests
       run: cargo run --example test tests/specs/base.json
+
+  check:
+      name: check
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v2
+        - name: Install latest nightly
+          uses: actions-rs/toolchain@v1
+          with:
+              toolchain: stable
+              override: true
+              components: rustfmt, clippy
+
+        - name: Run cargo check
+          run: rustfmt --check src/* examples/*
