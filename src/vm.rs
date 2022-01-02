@@ -194,14 +194,14 @@ mod tests {
 
     #[test]
     fn test_empty() {
-        let mut vm = VirtualMachine::new();
+        let mut vm = VirtualMachine::new(false);
         let mut chunk = Chunk::new("test");
         vm.run(&mut chunk);
     }
 
     #[test]
     fn test_basic() {
-        let mut vm = VirtualMachine::new();
+        let mut vm = VirtualMachine::new(false);
         let mut chunk = Chunk::new("test");
         chunk.write_opcode(OpCode::OpReturn, 1);
         vm.run(&mut chunk);
