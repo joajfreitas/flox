@@ -158,7 +158,8 @@
 			{
 				"name": "lambda",
 				"input": "(lambda (x) (+ x 1))",
-				"output": "1.0"
+				"output": "1.0",
+				"enabled": false
 			}
 		]
 	}

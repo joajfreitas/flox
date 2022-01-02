@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use crate::chunk::{Chunk, OpCode, Value, Closure};
 
-const DEBUG: bool = true;
-
 struct CallFrame {
     function: Box<Closure>,
     ip: usize,
@@ -13,8 +11,10 @@ pub struct VirtualMachine {
     stack: Vec<Value>,
     frames: Vec<CallFrame>,
     fp: usize,
+    debug: bool,
 }
 
+#[derive(Debug)]
 pub enum VMErr {
     CompileError,
     RuntimeError(String),
@@ -52,11 +52,12 @@ macro_rules! binary {
 }
 
 impl VirtualMachine {
-    pub fn new() -> VirtualMachine {
+    pub fn new(debug: bool) -> VirtualMachine {
         VirtualMachine { 
             stack: Vec::new(),
             frames: Vec::new(),
             fp: 0,
+            debug,
         }
     }
 
@@ -72,11 +73,7 @@ impl VirtualMachine {
         self.frames[self.fp].ip = ip;
     }
 
-    pub fn interpret(&mut self, chunk: &mut Chunk) -> Result<Value, VMErr> {
-        self.run(chunk)
-    }
-
-    fn run(&mut self, chunk: &mut Chunk) -> Result<Value, VMErr> {
+    pub fn run(&mut self, chunk: &mut Chunk) -> Result<Value, VMErr> {
         let frame = CallFrame {
             function : Box::new(Closure {
                 params: Vec::new(),
@@ -96,7 +93,7 @@ impl VirtualMachine {
             if !chunk.is_ip_in_range(ip) {
                 return Err(VMErr::RuntimeError(format!("Attemting to access unreachable bytecode. ip: {}, len: {}", ip, chunk.len())));
             }
-            if DEBUG {
+            if self.debug {
                 let (s, _) = chunk.display_instruction(ip).unwrap();
                 print!("{}", s);
                 println!("stack: {:?}", self.stack);
@@ -187,7 +184,7 @@ impl VirtualMachine {
 
 impl Default for VirtualMachine {
     fn default() -> Self {
-        Self::new()
+        Self::new(false)
     }
 }
 
@@ -199,7 +196,7 @@ mod tests {
     fn test_empty() {
         let mut vm = VirtualMachine::new();
         let mut chunk = Chunk::new("test");
-        vm.interpret(&mut chunk);
+        vm.run(&mut chunk);
     }
 
     #[test]
@@ -207,7 +204,7 @@ mod tests {
         let mut vm = VirtualMachine::new();
         let mut chunk = Chunk::new("test");
         chunk.write_opcode(OpCode::OpReturn, 1);
-        vm.interpret(&mut chunk);
+        vm.run(&mut chunk);
 
     }
 }

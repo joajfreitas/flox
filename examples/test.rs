@@ -9,8 +9,18 @@ use serde_json;
 
 use colored::Colorize;
 
+use clap::Parser;
+
 use flox::vm::VMErr;
 use flox::rep;
+
+#[derive(Parser, Debug)]
+#[clap(about, version, author)]
+struct Args {
+    #[clap(short, long)]
+    debug: bool,
+    file: String
+}
 
 
 #[derive(Serialize, Deserialize)]
@@ -25,16 +35,65 @@ struct Test {
     input: String,
     output: String,
     name: String, 
-    enabled: Option<bool>
+    enabled: Option<bool>,
+    err: Option<String>
+}
+
+fn validate_ok(output: String, test: &Test) -> (bool, bool) {
+    if  output == test.output {
+        println!("\t✔ {}", test.name);
+    }
+    else {
+        match test.enabled {
+            Some(false) => {
+                println!("\t ⚠️  {}:  {} -> {} | {}", test.name, test.input, output, test.output);
+                return (true, false);
+            },
+            Some(true) | None => {
+                println!("\t ❌ {}:  {} -> {} | {}", test.name, test.input, output, test.output);
+                return (false,true);
+            }
+        }
+    }
+
+    return (false, false)
+}
+
+fn validate_err(err: String, test: &Test) -> (bool, bool) {
+    let expected_output = if test.err.is_none() {
+        test.output.clone()
+    }
+    else {
+        test.err.clone().unwrap()
+    };
+    
+
+    if test.err.as_ref().is_none() || &err != test.err.as_ref().unwrap()  {
+        if test.enabled == Some(false) {
+            println!("\t ⚠️  {}:  {} -> {} | {}", test.name, test.input, err, expected_output);
+            return (true, false);
+        }
+        else {
+            println!("\t ❌ {}:  {} -> {} | {}", test.name, test.input, err, expected_output);
+            return (false, true);
+        }
+    }
+
+    (true, true)
+}
+
+fn validate(output: Result<String, String>, test: &Test) -> (bool, bool) {
+    match output {
+        Ok(v) => validate_ok(v, test),
+        Err(err) => validate_err(err, test),
+    }
 }
 
 fn main() -> Result<(), std::io::Error> {
-    let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
-        return Err(Error::new(ErrorKind::Other, "Expected a single argument"));
-    }
+    let args = Args::parse();
+    println!("{:?}", args);
 
-    let source = fs::read_to_string(args[1].clone()).unwrap();
+    let source = fs::read_to_string(args.file).unwrap();
     let suites: Vec<Suite> = serde_json::from_str(&source).unwrap();
 
     let mut error_count = 0;
@@ -45,21 +104,13 @@ fn main() -> Result<(), std::io::Error> {
         println!("- {}:", suite.name);
         for test in suite.tests {
             test_count += 1;
-            let output = rep(&test.input);
-            if  output == test.output {
-                println!("\t✔ {}", test.name);
+            let output = rep(&test.input, args.debug);
+            let (warn_inc, error_inc) = validate(output, &test);
+            if warn_inc {
+                warning_count += 1;
             }
-            else {
-                match test.enabled {
-                    Some(false) => {
-                        println!("\t ⚠️  {}:  {} -> {} | {}", test.name, test.input, output, test.output);
-                        warning_count += 1;
-                    },
-                    Some(true) | None => {
-                        println!("\t ❌ {}:  {} -> {} | {}", test.name, test.input, output, test.output);
-                        error_count += 1;
-                    }
-                }
+            if error_inc {
+                error_count += 1;
             }
         }
     }
