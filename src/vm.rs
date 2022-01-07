@@ -130,22 +130,8 @@ impl VirtualMachine {
                 OpCode::OpNil => nullary!(|| { Value::Nil }, self, ip),
                 OpCode::OpTrue => nullary!(|| { Value::Bool(true) }, self, ip),
                 OpCode::OpFalse => nullary!(|| { Value::Bool(false) }, self, ip),
-                OpCode::OpAdd => binary!(
-                    |x, y| {
-                        println!("{} +  {}", x, y);
-                        x + y
-                    },
-                    self,
-                    ip
-                ),
-                OpCode::OpSubtract => binary!(
-                    |x, y| {
-                        println!("{} - {}", x, y);
-                        x - y
-                    },
-                    self,
-                    ip
-                ),
+                OpCode::OpAdd => binary!(|x, y| { x + y }, self, ip),
+                OpCode::OpSubtract => binary!(|x, y| { x - y }, self, ip),
                 OpCode::OpMultiply => binary!(|x, y| { x * y }, self, ip),
                 OpCode::OpDivide => binary!(|x, y| { x / y }, self, ip),
                 OpCode::OpNot => unary!(|x: Value| { !x }, self, ip),
@@ -170,7 +156,6 @@ impl VirtualMachine {
                 OpCode::OpGetLocal => {
                     let slot = chunk.get_constant_index(ip + 1);
                     let fp = self.frames.last().unwrap().stackpointer;
-                    println!("Get Local {}, fp={}, slot={}", slot as usize + fp, fp, slot);
                     self.stack.push(self.stack[slot as usize + fp].clone());
                     self.set_ip(ip + 2);
                 }
@@ -190,14 +175,10 @@ impl VirtualMachine {
                 OpCode::OpCall => {
                     let mut args: Vec<Value> = Vec::new();
                     loop {
-                        let v = dbg!(self.stack.pop().unwrap());
+                        let v = self.stack.pop().unwrap();
                         if v.is_function() {
                             let f = v.get_function();
                             let nargs = (&f).params.len();
-                            println!("stackpointer: {}", self.stack.len());
-                            println!("{}", &f.chunk);
-                            println!("{:?}", &f.chunk.constants);
-                            println!("stack: {:?}", self.stack);
 
                             let frame = CallFrame {
                                 function: f,

@@ -160,9 +160,8 @@ fn read_shallow_list(scanner: &mut Scanner) -> Option<Vec<Token>> {
 }
 
 fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object, String> {
-    println!("parse lambda");
     assert!(scanner.scan().unwrap() == Token::Atom("lambda".to_string()));
-    let args = dbg!(read_shallow_list(scanner).unwrap());
+    let args = read_shallow_list(scanner).unwrap();
     let mut rng = rand::thread_rng();
     let r: u32 = rng.gen();
     let name = format!("f{}", r);
@@ -200,8 +199,6 @@ fn read_atom(
         }
     };
 
-    println!("{}", atom);
-
     match atom as &str {
         "nil" => {
             chunk.write_opcode(OpCode::OpNil, 1);
@@ -223,7 +220,7 @@ fn read_atom(
         }
         "set!" => {
             scanner.scan().unwrap(); //function name?
-            let var_name = dbg!(scanner.scan().unwrap().atom()); //first arg
+            let var_name = scanner.scan().unwrap().atom(); //first arg
             parse(scanner, chunk, compiler)?;
             let idx = compiler.set_local(var_name.clone());
             chunk.write_opcode(OpCode::OpSetLocal, 0);
@@ -265,8 +262,7 @@ fn read_atom(
         }
         "lambda" => {
             chunk.write_opcode(OpCode::OpConstant, 1);
-            let lambda = dbg!(parse_lambda(scanner, compiler)?);
-            println!("lambda: {:?}", lambda);
+            let lambda = parse_lambda(scanner, compiler)?;
             let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
             chunk.write_constant(idx as u8, 1);
             return Ok(());
