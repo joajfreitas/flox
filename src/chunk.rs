@@ -35,11 +35,17 @@ pub enum OpCode {
     OpCall,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Closure {
     pub params: Vec<String>,
     pub chunk: Chunk,
     pub name: String,
+}
+
+impl fmt::Debug for Closure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "closure")
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -153,9 +159,12 @@ impl Add for Value {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
-        match (self, other) {
+        match (&self, &other) {
             (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 + n2),
-            _ => panic!(),
+            _ => {
+                println!("add: {} {}", &self, &other);
+                panic!();
+            }
         }
     }
 }
@@ -267,9 +276,8 @@ impl Element {
 pub struct Chunk {
     name: String,
     code: Vec<Element>,
-    constants: Vec<Value>,
+    pub constants: Vec<Value>,
     lines: Vec<(usize, usize)>,
-    locals: HashMap<String, Value>,
     functions: HashMap<String, Closure>,
 }
 
@@ -301,7 +309,6 @@ impl Chunk {
             code: Vec::new(),
             constants: Vec::new(),
             lines: Vec::new(),
-            locals: HashMap::new(),
             functions: HashMap::new(),
         }
     }
@@ -312,18 +319,6 @@ impl Chunk {
 
     pub fn get_code(&mut self) -> Vec<Element> {
         self.code.clone()
-    }
-
-    pub fn get_locals(&mut self) -> &mut HashMap<String, Value> {
-        &mut self.locals
-    }
-
-    pub fn insert_local(&mut self, key: String, value: Value) -> Option<Value> {
-        self.locals.insert(key, value)
-    }
-
-    pub fn get_local(&self, key: String) -> Option<&Value> {
-        self.locals.get(&key)
     }
 
     pub fn get_current_index(&self) -> usize {
@@ -460,8 +455,8 @@ impl Chunk {
                 (format!("{:?} {}: '{}\n", opcode, n, c), 2)
             }
             OpCode::OpGetLocal => {
-                let (n, c) = self.get_constant(index + 1);
-                (format!("{:?} {}: '{}\n", opcode, n, c), 2)
+                let n = self.get_constant_index(index + 1);
+                (format!("{:?} {}\n", opcode, n), 2)
             }
             OpCode::OpJmpIfFalse | OpCode::OpJmp => {
                 let idx = self.get_constant_index(index + 1);

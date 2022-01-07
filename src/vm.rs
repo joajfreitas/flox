@@ -91,17 +91,31 @@ impl VirtualMachine {
                 )));
             }
             if self.debug {
+                println!("stack: {:?}", self.stack);
+                println!("ip={}", ip);
                 let (s, _) = chunk.display_instruction(ip).unwrap();
                 print!("{}", s);
-                println!("stack: {:?}", self.stack);
             }
             let opcode = chunk.get_opcode(ip).unwrap();
             match opcode {
                 OpCode::OpReturn => {
-                    match self.stack.pop() {
-                        Some(x) => return Ok(x),
-                        None => return Ok(Value::Nil),
-                    };
+                    if self.frames.len() == 1 {
+                        match self.stack.pop() {
+                            Some(x) => return Ok(x),
+                            None => return Ok(Value::Nil),
+                        };
+                    } else {
+                        let ret = self.stack.pop().unwrap();
+                        for i in 0..(*self.frames.last().unwrap().function).params.len() {
+                            self.stack.pop();
+                        }
+                        self.stack.pop();
+
+                        self.stack.push(ret);
+                        self.frames.pop();
+                        self.fp -= 1;
+                        self.set_ip(self.get_ip() + 1);
+                    }
                 }
                 OpCode::OpConstant => {
                     let (_, value) = chunk.get_constant(ip + 1);
@@ -116,8 +130,22 @@ impl VirtualMachine {
                 OpCode::OpNil => nullary!(|| { Value::Nil }, self, ip),
                 OpCode::OpTrue => nullary!(|| { Value::Bool(true) }, self, ip),
                 OpCode::OpFalse => nullary!(|| { Value::Bool(false) }, self, ip),
-                OpCode::OpAdd => binary!(|x, y| { x + y }, self, ip),
-                OpCode::OpSubtract => binary!(|x, y| { x - y }, self, ip),
+                OpCode::OpAdd => binary!(
+                    |x, y| {
+                        println!("{} +  {}", x, y);
+                        x + y
+                    },
+                    self,
+                    ip
+                ),
+                OpCode::OpSubtract => binary!(
+                    |x, y| {
+                        println!("{} - {}", x, y);
+                        x - y
+                    },
+                    self,
+                    ip
+                ),
                 OpCode::OpMultiply => binary!(|x, y| { x * y }, self, ip),
                 OpCode::OpDivide => binary!(|x, y| { x / y }, self, ip),
                 OpCode::OpNot => unary!(|x: Value| { !x }, self, ip),
@@ -141,7 +169,9 @@ impl VirtualMachine {
                 }
                 OpCode::OpGetLocal => {
                     let slot = chunk.get_constant_index(ip + 1);
-                    self.stack.push(self.stack[slot as usize].clone());
+                    let fp = self.frames.last().unwrap().stackpointer;
+                    println!("Get Local {}, fp={}, slot={}", slot as usize + fp, fp, slot);
+                    self.stack.push(self.stack[slot as usize + fp].clone());
                     self.set_ip(ip + 2);
                 }
                 OpCode::OpJmpIfFalse => {
@@ -158,20 +188,33 @@ impl VirtualMachine {
                     self.set_ip(idx as usize);
                 }
                 OpCode::OpCall => {
+                    let mut args: Vec<Value> = Vec::new();
                     loop {
                         let v = dbg!(self.stack.pop().unwrap());
                         if v.is_function() {
+                            let f = v.get_function();
+                            let nargs = (&f).params.len();
+                            println!("stackpointer: {}", self.stack.len());
+                            println!("{}", &f.chunk);
+                            println!("{:?}", &f.chunk.constants);
+                            println!("stack: {:?}", self.stack);
+
                             let frame = CallFrame {
-                                function: v.get_function(),
+                                function: f,
                                 ip: 0,
-                                stackpointer: self.stack.len() - 2,
+                                stackpointer: self.stack.len(),
                             };
+
                             self.frames.push(frame);
                             self.fp += 1;
                             break;
+                        } else {
+                            args.push(v);
                         }
                     }
-                    panic!();
+                    for arg in args.iter().rev() {
+                        self.stack.push(arg.clone());
+                    }
                 }
             }
         }
