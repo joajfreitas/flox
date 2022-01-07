@@ -34,7 +34,7 @@ fn repl(debug: bool) {
                 rl.save_history(".flang-history").unwrap();
 
                 let mut chunk = Chunk::new("test chunk");
-                compile(&line, &mut chunk);
+                compile(&line, &mut chunk).unwrap();
                 println!("{}", chunk);
                 match vm.run(&mut chunk) {
                     Ok(v) => println!("{}", v),

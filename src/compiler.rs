@@ -6,11 +6,20 @@ use std::collections::HashMap;
 use crate::chunk::{Chunk, Closure, Object, OpCode, Value};
 use crate::scanner::{Scanner, Token};
 
+#[derive(Clone)]
 struct Compiler {
     locals: Vec<String>,
+    up: Option<Box<Compiler>>,
 }
 
 impl Compiler {
+    fn new(up: Option<Box<Compiler>>) -> Compiler {
+        Compiler {
+            locals: Vec::new(),
+            up,
+        }
+    }
+
     fn set_local(&mut self, name: String) -> usize {
         self.locals.push(name);
         self.locals.len() - 1
@@ -29,7 +38,7 @@ impl Compiler {
 
 pub fn compile(source: &str, chunk: &mut Chunk) -> Result<(), String> {
     let mut scanner = Scanner::new(source);
-    let mut compiler = Compiler { locals: Vec::new() };
+    let mut compiler = Compiler::new(None);
 
     parse(&mut scanner, chunk, &mut compiler)?;
     chunk.write_opcode(OpCode::OpReturn, 1);
@@ -151,9 +160,9 @@ fn read_shallow_list(scanner: &mut Scanner) -> Option<Vec<Token>> {
 }
 
 fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object, String> {
+    println!("parse lambda");
     assert!(scanner.scan().unwrap() == Token::Atom("lambda".to_string()));
-    let args = read_shallow_list(scanner).unwrap();
-
+    let args = dbg!(read_shallow_list(scanner).unwrap());
     let mut rng = rand::thread_rng();
     let r: u32 = rng.gen();
     let name = format!("f{}", r);
@@ -162,7 +171,14 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
         chunk: Chunk::new(&name),
         name,
     };
-    parse(scanner, &mut closure.chunk, compiler)?;
+
+    let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())));
+
+    for arg in args {
+        compiler.set_local(arg.atom());
+    }
+    parse(scanner, &mut closure.chunk, &mut compiler)?;
+    closure.chunk.write_opcode(OpCode::OpReturn, 1);
     Ok(Object::Function(Box::new(closure)))
 }
 
@@ -183,6 +199,8 @@ fn read_atom(
             return Err(format!("Expected atom, got: {:?}", atom));
         }
     };
+
+    println!("{}", atom);
 
     match atom as &str {
         "nil" => {
@@ -248,6 +266,7 @@ fn read_atom(
         "lambda" => {
             chunk.write_opcode(OpCode::OpConstant, 1);
             let lambda = dbg!(parse_lambda(scanner, compiler)?);
+            println!("lambda: {:?}", lambda);
             let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
             chunk.write_constant(idx as u8, 1);
             return Ok(());

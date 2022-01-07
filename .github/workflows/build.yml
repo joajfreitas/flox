@@ -50,5 +50,5 @@ jobs:
               override: true
               components: rustfmt, clippy
 
-        - name: Run cargo check
+        - name: Run rustfmt
           run: rustfmt --check src/* examples/*
