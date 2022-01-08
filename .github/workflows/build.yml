@@ -11,7 +11,6 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -38,8 +37,7 @@ jobs:
     - name: Unit tests
       run: cargo run --example test tests/specs/base.json
 
-  check:
-      name: check
+  format-check:
       runs-on: ubuntu-latest
       steps:
         - uses: actions/checkout@v2
@@ -52,3 +50,20 @@ jobs:
 
         - name: Run rustfmt
           run: rustfmt --check src/* examples/*
+
+
+
+  clippy_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: Swatinem/rust-cache@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            components: clippy
+            override: true
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.TOKEN }}
+          args: --all-features
