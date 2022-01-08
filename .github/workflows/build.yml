@@ -67,3 +67,14 @@ jobs:
         with:
           token: ${{ secrets.GH_TOKEN }}
           args: --all-features
+
+  clippy_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: Swatinem/rust-cache@v1
+      - run: rustup component add clippy
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          args: --all-features
