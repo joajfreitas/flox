@@ -15,11 +15,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    # before the plugin, as it uses the current rustc version as its cache key
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: 1.55.0
     - uses: Swatinem/rust-cache@v1
     - name: Build
       run: cargo rustc --verbose -- -D warnings
@@ -49,8 +44,6 @@ jobs:
         - name: Install latest nightly
           uses: actions-rs/toolchain@v1
           with:
-              toolchain: stable
-              override: true
               components: rustfmt, clippy
 
         - name: Run rustfmt
@@ -65,9 +58,7 @@ jobs:
       - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/toolchain@v1
         with:
-            toolchain: stable
             components: clippy
-            override: true
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GH_TOKEN }}
