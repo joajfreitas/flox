@@ -1,7 +1,6 @@
 use lazy_static::lazy_static;
 use rand::Rng;
 use regex::{Captures, Regex};
-use std::collections::HashMap;
 
 use crate::chunk::{Chunk, Closure, Object, OpCode, Value};
 use crate::scanner::{Scanner, Token};
@@ -32,7 +31,7 @@ impl Compiler {
             }
         }
 
-        return None;
+        None
     }
 }
 
@@ -221,7 +220,7 @@ fn read_atom(
             scanner.scan().unwrap(); //function name?
             let var_name = scanner.scan().unwrap().atom(); //first arg
             parse(scanner, chunk, compiler)?;
-            let idx = compiler.set_local(var_name.clone());
+            let idx = compiler.set_local(var_name);
             chunk.write_opcode(OpCode::OpSetLocal, 0);
             chunk.write_constant(idx as u8, 0);
             return Ok(());
