@@ -1,5 +1,4 @@
 use crate::chunk::{Chunk, Closure, OpCode, Value};
-use std::collections::HashMap;
 
 struct CallFrame {
     function: Box<Closure>,
@@ -106,7 +105,7 @@ impl VirtualMachine {
                         };
                     } else {
                         let ret = self.stack.pop().unwrap();
-                        for i in 0..(*self.frames.last().unwrap().function).params.len() {
+                        for _i in 0..(*self.frames.last().unwrap().function).params.len() {
                             self.stack.pop();
                         }
                         self.stack.pop();
@@ -178,7 +177,6 @@ impl VirtualMachine {
                         let v = self.stack.pop().unwrap();
                         if v.is_function() {
                             let f = v.get_function();
-                            let nargs = (&f).params.len();
 
                             let frame = CallFrame {
                                 function: f,

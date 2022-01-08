@@ -11,14 +11,25 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
     - uses: Swatinem/rust-cache@v1
+    - name: Version
+      run: rustc --version
     - name: Build
-      run: cargo build --verbose
+      run: cargo rustc --verbose -- -D warnings
+
+  clippy-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: Swatinem/rust-cache@v1
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          args: --all-features -- -D warnings
 
   test:
     runs-on: ubuntu-latest
@@ -38,17 +49,34 @@ jobs:
     - name: Unit tests
       run: cargo run --example test tests/specs/base.json
 
-  check:
-      name: check
+  format-check:
       runs-on: ubuntu-latest
       steps:
         - uses: actions/checkout@v2
-        - name: Install latest nightly
-          uses: actions-rs/toolchain@v1
-          with:
-              toolchain: stable
-              override: true
-              components: rustfmt, clippy
-
         - name: Run rustfmt
           run: rustfmt --check src/* examples/*
+
+  code-coverage:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v2
+
+        - name: Install stable toolchain
+          uses: actions-rs/toolchain@v1
+          with:
+            toolchain: stable
+            override: true
+        - uses: Swatinem/rust-cache@v1
+
+        - name: Run cargo-tarpaulin
+          uses: actions-rs/tarpaulin@v0.1
+          with:
+            version: '0.15.0'
+            args: '-- --test-threads 1'
+
+        - name: Archive code coverage results
+          uses: actions/upload-artifact@v1
+          with:
+            name: code-coverage-report
+            path: cobertura.xml
