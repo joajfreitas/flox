@@ -8,7 +8,7 @@ use rustyline::Editor;
 use clap::Parser;
 
 use flox::chunk::{Chunk, OpCode, Value};
-use flox::compiler::{compile, Compiler};
+use flox::compiler::compile;
 use flox::vm::{VMErr, VirtualMachine};
 
 #[derive(Parser, Debug)]
@@ -24,7 +24,6 @@ fn repl(debug: bool) {
     rl.load_history(".flang-history");
     let mut prompt: String = "user> ".to_string();
     let mut vm = VirtualMachine::new(debug);
-    let mut comp = Compiler::new(None);
 
     loop {
         let line = rl.readline(&prompt);
@@ -35,7 +34,7 @@ fn repl(debug: bool) {
                 rl.save_history(".flang-history").unwrap();
 
                 let mut chunk = Chunk::new("test chunk");
-                compile(&line, &mut chunk, &mut comp).unwrap();
+                compile(&line, &mut chunk).unwrap();
                 println!("{}", chunk);
                 match vm.run(&mut chunk) {
                     Ok(v) => println!("{}", v),
@@ -60,8 +59,7 @@ fn run_file(filename: String, debug: bool) {
     let source = fs::read_to_string(filename).unwrap();
 
     let mut chunk = Chunk::new("test chunk");
-    let mut comp = Compiler::new(None);
-    compile(&source, &mut chunk, &mut comp);
+    compile(&source, &mut chunk);
     println!("{}", chunk);
     let mut vm = VirtualMachine::new(debug);
     vm.run(&mut chunk);

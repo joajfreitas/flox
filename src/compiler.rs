@@ -1,18 +1,19 @@
 use lazy_static::lazy_static;
 use rand::Rng;
 use regex::{Captures, Regex};
+use std::collections::HashMap;
 
 use crate::chunk::{Chunk, Closure, Object, OpCode, Value};
 use crate::scanner::{Scanner, Token};
 
 #[derive(Clone)]
-pub struct Compiler {
+struct Compiler {
     locals: Vec<String>,
     up: Option<Box<Compiler>>,
 }
 
 impl Compiler {
-    pub fn new(up: Option<Box<Compiler>>) -> Compiler {
+    fn new(up: Option<Box<Compiler>>) -> Compiler {
         Compiler {
             locals: Vec::new(),
             up,
@@ -31,13 +32,14 @@ impl Compiler {
             }
         }
 
-        None
+        return None;
     }
 }
 
-pub fn compile(source: &str, chunk: &mut Chunk, compiler: &mut Compiler) -> Result<(), String> {
+pub fn compile(source: &str, chunk: &mut Chunk) -> Result<(), String> {
     let mut scanner = Scanner::new(source);
-    parse(&mut scanner, chunk, compiler)?;
+    let mut compiler = Compiler::new(None);
+    parse(&mut scanner, chunk, &mut compiler)?;
     chunk.write_opcode(OpCode::OpReturn, 1);
 
     Ok(())
@@ -219,7 +221,7 @@ fn read_atom(
             scanner.scan().unwrap(); //function name?
             let var_name = scanner.scan().unwrap().atom(); //first arg
             parse(scanner, chunk, compiler)?;
-            let idx = compiler.set_local(var_name);
+            let idx = compiler.set_local(var_name.clone());
             chunk.write_opcode(OpCode::OpSetLocal, 0);
             chunk.write_constant(idx as u8, 0);
             return Ok(());
