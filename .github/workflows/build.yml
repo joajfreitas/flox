@@ -15,6 +15,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    # before the plugin, as it uses the current rustc version as its cache key
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: 1.55.0
     - uses: Swatinem/rust-cache@v1
     - name: Build
       run: cargo rustc --verbose -- -D warnings
