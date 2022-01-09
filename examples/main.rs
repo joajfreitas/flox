@@ -25,6 +25,7 @@ fn repl(debug: bool) {
     let mut prompt: String = "user> ".to_string();
     let mut vm = VirtualMachine::new(debug);
     let mut comp = Compiler::new(None);
+    let mut chunk = Chunk::new("test chunk");
 
     loop {
         let line = rl.readline(&prompt);
@@ -34,9 +35,10 @@ fn repl(debug: bool) {
                 rl.add_history_entry(line.as_str());
                 rl.save_history(".flang-history").unwrap();
 
-                let mut chunk = Chunk::new("test chunk");
                 compile(&line, &mut chunk, &mut comp).unwrap();
-                println!("{}", chunk);
+                if debug {
+                    println!("{}", chunk);
+                }
                 match vm.run(&mut chunk) {
                     Ok(v) => println!("{}", v),
                     Err(VMErr::RuntimeError(s)) => {
