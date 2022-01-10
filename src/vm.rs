@@ -101,7 +101,7 @@ impl VirtualMachine {
             match opcode {
                 OpCode::OpReturn => {
                     if self.frames.len() == 1 {
-                        self.ip = self.get_ip()+1;
+                        self.ip = self.get_ip() + 1;
                         match self.stack.last() {
                             Some(x) => return Ok(x.clone()),
                             None => return Ok(Value::Nil),
