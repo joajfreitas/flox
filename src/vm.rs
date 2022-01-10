@@ -11,6 +11,7 @@ pub struct VirtualMachine {
     frames: Vec<CallFrame>,
     fp: usize,
     debug: bool,
+    ip: usize,
 }
 
 #[derive(Debug)]
@@ -50,6 +51,7 @@ impl VirtualMachine {
             frames: Vec::new(),
             fp: 0,
             debug,
+            ip: 0,
         }
     }
 
@@ -72,7 +74,7 @@ impl VirtualMachine {
                 chunk: chunk.clone(),
                 name: "main".to_string(),
             }),
-            ip: 0,
+            ip: self.ip,
             stackpointer: 0,
         };
 
@@ -99,8 +101,9 @@ impl VirtualMachine {
             match opcode {
                 OpCode::OpReturn => {
                     if self.frames.len() == 1 {
-                        match self.stack.pop() {
-                            Some(x) => return Ok(x),
+                        self.ip = self.get_ip()+1;
+                        match self.stack.last() {
+                            Some(x) => return Ok(x.clone()),
                             None => return Ok(Value::Nil),
                         };
                     } else {

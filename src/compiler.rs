@@ -6,13 +6,13 @@ use crate::chunk::{Chunk, Closure, Object, OpCode, Value};
 use crate::scanner::{Scanner, Token};
 
 #[derive(Clone)]
-struct Compiler {
+pub struct Compiler {
     locals: Vec<String>,
     up: Option<Box<Compiler>>,
 }
 
 impl Compiler {
-    fn new(up: Option<Box<Compiler>>) -> Compiler {
+    pub fn new(up: Option<Box<Compiler>>) -> Compiler {
         Compiler {
             locals: Vec::new(),
             up,
@@ -35,10 +35,9 @@ impl Compiler {
     }
 }
 
-pub fn compile(source: &str, chunk: &mut Chunk) -> Result<(), String> {
+pub fn compile(source: &str, chunk: &mut Chunk, compiler: &mut Compiler) -> Result<(), String> {
     let mut scanner = Scanner::new(source);
-    let mut compiler = Compiler::new(None);
-    parse(&mut scanner, chunk, &mut compiler)?;
+    parse(&mut scanner, chunk, compiler)?;
     chunk.write_opcode(OpCode::OpReturn, 1);
 
     Ok(())
