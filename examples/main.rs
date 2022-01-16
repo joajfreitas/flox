@@ -35,7 +35,13 @@ fn repl(debug: bool) {
                 rl.add_history_entry(line.as_str());
                 rl.save_history(".flang-history").unwrap();
 
-                compile(&line, &mut chunk, &mut comp).unwrap();
+                match compile(&line, &mut chunk, &mut comp) {
+                    Err(err) => {
+                        println!("{}", err);
+                        continue;
+                    }
+                    _ => {}
+                };
                 if debug {
                     println!("{}", chunk);
                 }

@@ -50,6 +50,15 @@ impl Scanner {
         })
     }
 
+    pub fn previous(&self) -> Option<Token> {
+        let token: &str = &self.tokens[self.pos - 1];
+        match token {
+            "(" => Some(Token::LeftParen),
+            ")" => Some(Token::RightParen),
+            _ => Some(Token::Atom(token.to_string())),
+        }
+    }
+
     pub fn next_tokens(&self) -> Vec<String> {
         self.tokens[self.pos..].to_vec()
     }

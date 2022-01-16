@@ -111,7 +111,6 @@ impl VirtualMachine {
                         for _i in 0..(*self.frames.last().unwrap().function).params.len() {
                             self.stack.pop();
                         }
-                        self.stack.pop();
 
                         self.stack.push(ret);
                         self.frames.pop();
