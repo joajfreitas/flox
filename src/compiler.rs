@@ -264,18 +264,6 @@ fn read_atom(
             chunk.write_constant(idx as u8, 1);
             return Ok(());
         }
-        "apply" => {
-            scanner.scan().unwrap();
-            loop {
-                if scanner.peek().unwrap() == Token::RightParen {
-                    break;
-                }
-                parse(scanner, chunk, compiler)?;
-            }
-
-            chunk.write_opcode(OpCode::OpCall, 1);
-            return Ok(());
-        }
         _ => {}
     }
 
@@ -289,7 +277,8 @@ fn read_atom(
         let s = Object::Str(unescape_str(&atom[1..atom.len() - 1]));
         let constant = chunk.add_constant(Value::Obj(Box::new(s)));
         chunk.write_constant(constant as u8, 1);
-    } else {
+    } else if scanner.previous() != Some(Token::LeftParen) {
+        // get local
         chunk.write_opcode(OpCode::OpGetLocal, 1);
         let idx = match compiler.get_local(atom.to_string()) {
             Some(idx) => idx,
@@ -298,7 +287,26 @@ fn read_atom(
             }
         };
         chunk.write_constant(idx as u8, 1);
-    };
+    } else {
+        //call function
+        scanner.scan().unwrap();
+        chunk.write_opcode(OpCode::OpGetLocal, 1);
+        let idx = match compiler.get_local(atom.to_string()) {
+            Some(idx) => idx,
+            None => {
+                return Err(format!("Symbol {} is not defined", atom));
+            }
+        };
+        chunk.write_constant(idx as u8, 1);
+        loop {
+            if scanner.peek().unwrap() == Token::RightParen {
+                break;
+            }
+            parse(scanner, chunk, compiler)?;
+        }
+
+        chunk.write_opcode(OpCode::OpCall, 1);
+    }
 
     Ok(())
 }
