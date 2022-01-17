@@ -44,7 +44,17 @@ pub struct Closure {
 
 impl fmt::Debug for Closure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "closure")
+        write!(f, "({} (", self.name)?;
+        for (i, param) in self.params.iter().enumerate() {
+            if i + 1 == self.params.len() {
+                write!(f, "{}", param)?;
+            }
+            else {
+                write!(f, "{} ", param)?;
+            }
+        }
+
+        write!(f, "))")
     }
 }
 
@@ -251,7 +261,7 @@ impl fmt::Display for Value {
             Value::Nil => write!(f, "nil"),
             Value::Obj(obj) => match &**obj {
                 Object::Str(s) => write!(f, "{:1}", s),
-                Object::Function(_) => write!(f, "function"),
+                Object::Function(closure) => write!(f, "{:?}", closure),
             },
         }
     }
