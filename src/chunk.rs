@@ -49,8 +49,7 @@ impl fmt::Debug for Closure {
         for (i, param) in self.params.iter().enumerate() {
             if i + 1 == self.params.len() {
                 write!(f, "{}", param)?;
-            }
-            else {
+            } else {
                 write!(f, "{} ", param)?;
             }
         }
