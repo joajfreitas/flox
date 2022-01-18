@@ -24,7 +24,7 @@ impl Compiler {
         self.locals.len() - 1
     }
 
-    fn get_local(&mut self, name: String) -> Option<usize> {
+    fn get_local(&self, name: String) -> Option<usize> {
         for (i, local) in self.locals.iter().enumerate().rev() {
             if local == &name {
                 return Some(i);
@@ -32,6 +32,144 @@ impl Compiler {
         }
 
         None
+    }
+
+    fn emit_nil(&self, chunk: &mut Chunk) -> Result<(), String> {
+        chunk.write_opcode(OpCode::OpNil, 1);
+        Ok(())
+    }
+
+    fn emit_true(&self, chunk: &mut Chunk) -> Result<(), String> {
+        chunk.write_opcode(OpCode::OpTrue, 1);
+        Ok(())
+    }
+
+    fn emit_false(&self, chunk: &mut Chunk) -> Result<(), String> {
+        chunk.write_opcode(OpCode::OpFalse, 1);
+        Ok(())
+    }
+
+    fn emit_basic_algebra_operator(
+        self: &mut Self,
+        chunk: &mut Chunk,
+        atom: &str,
+        scanner: &mut Scanner,
+    ) -> Result<(), String> {
+        scanner.scan().unwrap();
+        binary(atom, scanner, chunk, self)?;
+        Ok(())
+    }
+
+    fn emit_set_local(
+        self: &mut Self,
+        chunk: &mut Chunk,
+        atom: &str,
+        scanner: &mut Scanner,
+    ) -> Result<(), String> {
+        scanner.scan().unwrap(); //function name?
+        let var_name = scanner.scan().unwrap().atom(); //first arg
+        parse(scanner, chunk, self)?;
+        let idx = self.set_local(var_name);
+        chunk.write_opcode(OpCode::OpSetLocal, 0);
+        chunk.write_constant(idx as u8, 0);
+        Ok(())
+    }
+
+    fn emit_if(self: &mut Self, chunk: &mut Chunk, atom: &str, scanner: &mut Scanner) -> Result<(), String> {
+        scanner.scan().unwrap();
+        parse(scanner, chunk, self)?;
+        chunk.write_opcode(OpCode::OpJmpIfFalse, 1);
+        chunk.write_constant(0, 1); //placeholder
+        let branch_idx = chunk.get_current_index();
+        parse(scanner, chunk, self)?;
+        chunk.write_opcode(OpCode::OpJmp, 1);
+        chunk.write_constant(0, 1); //placeholder
+        let jmp_idx = chunk.get_current_index();
+        let false_idx = jmp_idx + 1;
+        parse(scanner, chunk, self)?;
+        let end_idx = chunk.get_current_index() + 1;
+
+        chunk.rewrite_constant(branch_idx, false_idx as u8);
+        chunk.rewrite_constant(jmp_idx, end_idx as u8);
+        Ok(())
+    }
+
+    fn emit_not(self: &mut Self, chunk: &mut Chunk, atom: &str, scanner: &mut Scanner) -> Result<(), String>{
+        scanner.scan().unwrap();
+        unary(atom, scanner, chunk, self)?;
+        Ok(())
+    }
+
+    fn emit_do(self: &mut Self, chunk: &mut Chunk, atom: &str, scanner: &mut Scanner) -> Result<(), String> {
+        scanner.scan().unwrap();
+        loop {
+            if scanner.peek().unwrap() == Token::RightParen {
+                break;
+            }
+            parse(scanner, chunk, self)?;
+        }
+        Ok(())
+    }
+
+    fn emit_lambda(self: &mut Self, chunk: &mut Chunk, atom: &str, scanner: &mut Scanner) -> Result<(), String> {
+        chunk.write_opcode(OpCode::OpConstant, 1);
+        let lambda = parse_lambda(scanner, self)?;
+        let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
+        chunk.write_constant(idx as u8, 1);
+        return Ok(());
+    }
+
+    fn emit_integer(&self, chunk: &mut Chunk, atom: &str) -> Result<(), String> {
+        let i: i32 = atom.parse().unwrap();
+        chunk.write_opcode(OpCode::OpConstant, 1);
+        let constant = chunk.add_constant(Value::Number(i as f64));
+        chunk.write_constant(constant as u8, 1);
+        Ok(())
+    }
+    fn emit_string(&self, chunk: &mut Chunk, atom: &str) -> Result<(), String> {
+        chunk.write_opcode(OpCode::OpConstant, 1);
+        let s = Object::Str(unescape_str(&atom[1..atom.len() - 1]));
+        let constant = chunk.add_constant(Value::Obj(Box::new(s)));
+        chunk.write_constant(constant as u8, 1);
+        Ok(())
+    }
+
+    fn emit_get_local(&self, chunk: &mut Chunk, atom: &str) -> Result<(), String> {
+        chunk.write_opcode(OpCode::OpGetLocal, 1);
+        let idx = match self.get_local(atom.to_string()) {
+            Some(idx) => idx,
+            None => {
+                return Err(format!("Symbol {} is not defined", atom));
+            }
+        };
+        chunk.write_constant(idx as u8, 1);
+        Ok(())
+    }
+
+    fn emit_function_call(
+        self: &mut Self,
+        chunk: &mut Chunk,
+        atom: &str,
+        scanner: &mut Scanner,
+    ) -> Result<(), String> {
+        scanner.scan().unwrap();
+        chunk.write_opcode(OpCode::OpGetLocal, 1);
+        let idx = match self.get_local(atom.to_string()) {
+            Some(idx) => idx,
+            None => {
+                return Err(format!("Symbol {} is not defined", atom));
+            }
+        };
+        chunk.write_constant(idx as u8, 1);
+        loop {
+            if scanner.peek().unwrap() == Token::RightParen {
+                break;
+            }
+            parse(scanner, chunk, self)?;
+        }
+
+        chunk.write_opcode(OpCode::OpCall, 1);
+        Ok(())
     }
 }
 
@@ -198,114 +336,44 @@ fn read_atom(
 
     match atom as &str {
         "nil" => {
-            chunk.write_opcode(OpCode::OpNil, 1);
-            return Ok(());
+            return compiler.emit_nil(chunk);
         }
         "true" => {
-            chunk.write_opcode(OpCode::OpTrue, 1);
-            return Ok(());
+            return compiler.emit_true(chunk);
         }
         "false" => {
-            chunk.write_opcode(OpCode::OpFalse, 1);
-            return Ok(());
+            return compiler.emit_false(chunk);
         }
         "+" | "-" | "*" | "/" | "=" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "nand" | "or"
         | "nor" | "xor" | "xnor" => {
-            scanner.scan().unwrap();
-            binary(atom, scanner, chunk, compiler)?;
-            return Ok(());
+            return compiler.emit_basic_algebra_operator(chunk, atom, scanner);
         }
         "set!" => {
-            scanner.scan().unwrap(); //function name?
-            let var_name = scanner.scan().unwrap().atom(); //first arg
-            parse(scanner, chunk, compiler)?;
-            let idx = compiler.set_local(var_name);
-            chunk.write_opcode(OpCode::OpSetLocal, 0);
-            chunk.write_constant(idx as u8, 0);
-            return Ok(());
+            return compiler.emit_set_local(chunk, atom, scanner);
         }
         "if" => {
-            scanner.scan().unwrap();
-            parse(scanner, chunk, compiler)?;
-            chunk.write_opcode(OpCode::OpJmpIfFalse, 1);
-            chunk.write_constant(0, 1); //placeholder
-            let branch_idx = chunk.get_current_index();
-            parse(scanner, chunk, compiler)?;
-            chunk.write_opcode(OpCode::OpJmp, 1);
-            chunk.write_constant(0, 1); //placeholder
-            let jmp_idx = chunk.get_current_index();
-            let false_idx = jmp_idx + 1;
-            parse(scanner, chunk, compiler)?;
-            let end_idx = chunk.get_current_index() + 1;
-
-            chunk.rewrite_constant(branch_idx, false_idx as u8);
-            chunk.rewrite_constant(jmp_idx, end_idx as u8);
-            return Ok(());
+            return compiler.emit_if(chunk, atom, scanner);
         }
         "not" => {
-            scanner.scan().unwrap();
-            unary(atom, scanner, chunk, compiler)?;
-            return Ok(());
+            return compiler.emit_not(chunk, atom, scanner);
         }
         "do" => {
-            scanner.scan().unwrap();
-            loop {
-                if scanner.peek().unwrap() == Token::RightParen {
-                    break;
-                }
-                parse(scanner, chunk, compiler)?;
-            }
-            return Ok(());
+            return compiler.emit_do(chunk, atom, scanner);
         }
         "lambda" => {
-            chunk.write_opcode(OpCode::OpConstant, 1);
-            let lambda = parse_lambda(scanner, compiler)?;
-            let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
-            chunk.write_constant(idx as u8, 1);
-            return Ok(());
+            return compiler.emit_lambda(chunk, atom, scanner);
         }
         _ => {}
     }
 
     if INT_RE.is_match(atom) {
-        let i: i32 = atom.parse().unwrap();
-        chunk.write_opcode(OpCode::OpConstant, 1);
-        let constant = chunk.add_constant(Value::Number(i as f64));
-        chunk.write_constant(constant as u8, 1);
+        compiler.emit_integer(chunk, atom)?;
     } else if STR_RE.is_match(atom) {
-        chunk.write_opcode(OpCode::OpConstant, 1);
-        let s = Object::Str(unescape_str(&atom[1..atom.len() - 1]));
-        let constant = chunk.add_constant(Value::Obj(Box::new(s)));
-        chunk.write_constant(constant as u8, 1);
+        compiler.emit_string(chunk, atom)?;
     } else if scanner.previous() != Some(Token::LeftParen) {
-        // get local
-        chunk.write_opcode(OpCode::OpGetLocal, 1);
-        let idx = match compiler.get_local(atom.to_string()) {
-            Some(idx) => idx,
-            None => {
-                return Err(format!("Symbol {} is not defined", atom));
-            }
-        };
-        chunk.write_constant(idx as u8, 1);
+        compiler.emit_get_local(chunk, atom)?;
     } else {
-        //call function
-        scanner.scan().unwrap();
-        chunk.write_opcode(OpCode::OpGetLocal, 1);
-        let idx = match compiler.get_local(atom.to_string()) {
-            Some(idx) => idx,
-            None => {
-                return Err(format!("Symbol {} is not defined", atom));
-            }
-        };
-        chunk.write_constant(idx as u8, 1);
-        loop {
-            if scanner.peek().unwrap() == Token::RightParen {
-                break;
-            }
-            parse(scanner, chunk, compiler)?;
-        }
-
-        chunk.write_opcode(OpCode::OpCall, 1);
+        compiler.emit_function_call(chunk, atom, scanner)?;
     }
 
     Ok(())
