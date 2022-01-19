@@ -9,10 +9,12 @@ pub enum Token {
 }
 
 impl Token {
-    pub fn atom(&self) -> String {
+    pub fn atom(&self) -> Result<String, String> {
         match self {
-            Token::Atom(s) => s.clone(),
-            _ => panic!(),
+            Token::Atom(s) => Ok(s.clone()),
+            _ => {
+                return Err(format!("Expected atom, got: {:?}", self));
+            }
         }
     }
 }
