@@ -50,7 +50,7 @@ impl Compiler {
     }
 
     fn emit_basic_algebra_operator(
-        self: &mut Self,
+        &mut self,
         chunk: &mut Chunk,
         atom: &str,
         scanner: &mut Scanner,
@@ -60,11 +60,7 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_set_local(
-        self: &mut Self,
-        chunk: &mut Chunk,
-        scanner: &mut Scanner,
-    ) -> Result<(), String> {
+    fn emit_set_local(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         scanner.scan().unwrap(); //function name?
         let var_name = scanner.scan().unwrap().atom()?; //first arg
         parse(scanner, chunk, self)?;
@@ -74,7 +70,7 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_if(self: &mut Self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
+    fn emit_if(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         scanner.scan().unwrap();
         parse(scanner, chunk, self)?;
         chunk.write_opcode(OpCode::OpJmpIfFalse, 1);
@@ -94,7 +90,7 @@ impl Compiler {
     }
 
     fn emit_not(
-        self: &mut Self,
+        &mut self,
         chunk: &mut Chunk,
         atom: &str,
         scanner: &mut Scanner,
@@ -104,7 +100,7 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_do(self: &mut Self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
+    fn emit_do(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         scanner.scan().unwrap();
         loop {
             if scanner.peek().unwrap() == Token::RightParen {
@@ -115,16 +111,12 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_lambda(
-        self: &mut Self,
-        chunk: &mut Chunk,
-        scanner: &mut Scanner,
-    ) -> Result<(), String> {
+    fn emit_lambda(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         chunk.write_opcode(OpCode::OpConstant, 1);
         let lambda = parse_lambda(scanner)?;
         let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
         chunk.write_constant(idx as u8, 1);
-        return Ok(());
+        Ok(())
     }
 
     fn emit_integer(&self, chunk: &mut Chunk, atom: &str) -> Result<(), String> {
@@ -155,7 +147,7 @@ impl Compiler {
     }
 
     fn emit_function_call(
-        self: &mut Self,
+        &mut self,
         chunk: &mut Chunk,
         atom: &str,
         scanner: &mut Scanner,
