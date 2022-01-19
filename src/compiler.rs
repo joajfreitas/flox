@@ -63,11 +63,10 @@ impl Compiler {
     fn emit_set_local(
         self: &mut Self,
         chunk: &mut Chunk,
-        atom: &str,
         scanner: &mut Scanner,
     ) -> Result<(), String> {
         scanner.scan().unwrap(); //function name?
-        let var_name = scanner.scan().unwrap().atom(); //first arg
+        let var_name = scanner.scan().unwrap().atom()?; //first arg
         parse(scanner, chunk, self)?;
         let idx = self.set_local(var_name);
         chunk.write_opcode(OpCode::OpSetLocal, 0);
@@ -75,7 +74,7 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_if(self: &mut Self, chunk: &mut Chunk, atom: &str, scanner: &mut Scanner) -> Result<(), String> {
+    fn emit_if(self: &mut Self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         scanner.scan().unwrap();
         parse(scanner, chunk, self)?;
         chunk.write_opcode(OpCode::OpJmpIfFalse, 1);
@@ -94,13 +93,18 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_not(self: &mut Self, chunk: &mut Chunk, atom: &str, scanner: &mut Scanner) -> Result<(), String>{
+    fn emit_not(
+        self: &mut Self,
+        chunk: &mut Chunk,
+        atom: &str,
+        scanner: &mut Scanner,
+    ) -> Result<(), String> {
         scanner.scan().unwrap();
         unary(atom, scanner, chunk, self)?;
         Ok(())
     }
 
-    fn emit_do(self: &mut Self, chunk: &mut Chunk, atom: &str, scanner: &mut Scanner) -> Result<(), String> {
+    fn emit_do(self: &mut Self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         scanner.scan().unwrap();
         loop {
             if scanner.peek().unwrap() == Token::RightParen {
@@ -111,7 +115,11 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_lambda(self: &mut Self, chunk: &mut Chunk, atom: &str, scanner: &mut Scanner) -> Result<(), String> {
+    fn emit_lambda(
+        self: &mut Self,
+        chunk: &mut Chunk,
+        scanner: &mut Scanner,
+    ) -> Result<(), String> {
         chunk.write_opcode(OpCode::OpConstant, 1);
         let lambda = parse_lambda(scanner, self)?;
         let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
@@ -301,7 +309,10 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
     let r: u32 = rng.gen();
     let name = format!("f{}", r);
     let mut closure = Closure {
-        params: args.iter().map(|x| x.atom()).collect::<Vec<String>>(),
+        params: args
+            .iter()
+            .map(|x| x.atom().unwrap())
+            .collect::<Vec<String>>(),
         chunk: Chunk::new(&name),
         name,
     };
@@ -309,7 +320,7 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
     let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())));
 
     for arg in args {
-        compiler.set_local(arg.atom());
+        compiler.set_local(arg.atom()?);
     }
     parse(scanner, &mut closure.chunk, &mut compiler)?;
     closure.chunk.write_opcode(OpCode::OpReturn, 1);
@@ -327,54 +338,29 @@ fn read_atom(
         static ref STR_RE: Regex = Regex::new(r#""(?:\\.|[^\\"])*""#).unwrap();
     }
 
-    let atom = match atom {
-        Token::Atom(atom) => atom,
-        _ => {
-            return Err(format!("Expected atom, got: {:?}", atom));
-        }
-    };
+    let atom: &str = &atom.atom()?;
 
     match atom as &str {
-        "nil" => {
-            return compiler.emit_nil(chunk);
-        }
-        "true" => {
-            return compiler.emit_true(chunk);
-        }
-        "false" => {
-            return compiler.emit_false(chunk);
-        }
+        "nil" => compiler.emit_nil(chunk),
+        "true" => compiler.emit_true(chunk),
+        "false" => compiler.emit_false(chunk),
         "+" | "-" | "*" | "/" | "=" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "nand" | "or"
-        | "nor" | "xor" | "xnor" => {
-            return compiler.emit_basic_algebra_operator(chunk, atom, scanner);
+        | "nor" | "xor" | "xnor" => compiler.emit_basic_algebra_operator(chunk, atom, scanner),
+        "set!" => compiler.emit_set_local(chunk, scanner),
+        "if" => compiler.emit_if(chunk, scanner),
+        "not" => compiler.emit_not(chunk, atom, scanner),
+        "do" => compiler.emit_do(chunk, scanner),
+        "lambda" => compiler.emit_lambda(chunk, scanner),
+        _ => {
+            if INT_RE.is_match(atom) {
+                compiler.emit_integer(chunk, atom)
+            } else if STR_RE.is_match(atom) {
+                compiler.emit_string(chunk, atom)
+            } else if scanner.previous() != Some(Token::LeftParen) {
+                compiler.emit_get_local(chunk, atom)
+            } else {
+                compiler.emit_function_call(chunk, atom, scanner)
+            }
         }
-        "set!" => {
-            return compiler.emit_set_local(chunk, atom, scanner);
-        }
-        "if" => {
-            return compiler.emit_if(chunk, atom, scanner);
-        }
-        "not" => {
-            return compiler.emit_not(chunk, atom, scanner);
-        }
-        "do" => {
-            return compiler.emit_do(chunk, atom, scanner);
-        }
-        "lambda" => {
-            return compiler.emit_lambda(chunk, atom, scanner);
-        }
-        _ => {}
     }
-
-    if INT_RE.is_match(atom) {
-        compiler.emit_integer(chunk, atom)?;
-    } else if STR_RE.is_match(atom) {
-        compiler.emit_string(chunk, atom)?;
-    } else if scanner.previous() != Some(Token::LeftParen) {
-        compiler.emit_get_local(chunk, atom)?;
-    } else {
-        compiler.emit_function_call(chunk, atom, scanner)?;
-    }
-
-    Ok(())
 }
