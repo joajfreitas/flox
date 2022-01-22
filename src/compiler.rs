@@ -178,6 +178,29 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
     Ok(Object::Function(Box::new(closure)))
 }
 
+fn parse_defun(scanner:&mut Scanner, compiler: &mut Compiler) -> Result<Object, String> {
+    assert!(scanner.scan().unwrap() == Token::Atom("defun".to_string()));
+    let tok = dbg!(scanner.scan().unwrap());
+    let args = read_shallow_list(scanner).unwrap();
+    let mut rng = rand::thread_rng();
+    let r: u32 = rng.gen();
+    let name = format!("f{}", r);
+    let mut closure = Closure {
+        params: args.iter().map(|x| x.atom()).collect::<Vec<String>>(),
+        chunk: Chunk::new(&name),
+        name,
+    };
+
+    let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())));
+
+    for arg in args {
+        compiler.set_local(arg.atom());
+    }
+    parse(scanner, &mut closure.chunk, &mut compiler)?;
+    closure.chunk.write_opcode(OpCode::OpReturn, 1);
+    Ok(Object::Function(Box::new(closure)))
+}
+
 fn read_atom(
     atom: &Token,
     scanner: &mut Scanner,
@@ -263,6 +286,9 @@ fn read_atom(
             let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
             chunk.write_constant(idx as u8, 1);
             return Ok(());
+        },
+        "defun" => {
+            let lambda = parse_defun(scanner, compiler)?;
         }
         _ => {}
     }
