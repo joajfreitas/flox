@@ -71,7 +71,7 @@ impl Object {
         }
     }
 
-    fn get_function(&self) -> Box<Closure> {
+    pub fn get_function(&self) -> Box<Closure> {
         match self {
             Object::Function(f) => f.clone(),
             _ => panic!(),

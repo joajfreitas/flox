@@ -7,15 +7,13 @@ use crate::scanner::{Scanner, Token};
 
 #[derive(Clone)]
 pub struct Compiler {
-    context: String,
     locals: Vec<String>,
     up: Option<Box<Compiler>>,
 }
 
 impl Compiler {
-    pub fn new(up: Option<Box<Compiler>>, context: &str) -> Compiler {
+    pub fn new(up: Option<Box<Compiler>>) -> Compiler {
         Compiler {
-            context: context.to_string(),
             locals: Vec::new(),
             up,
         }
@@ -27,9 +25,6 @@ impl Compiler {
     }
 
     fn get_local(&self, name: String) -> Option<usize> {
-        if self.context == name {
-            return Some(0);
-        }
         for (i, local) in self.locals.iter().enumerate().rev() {
             if local == &name {
                 return Some(i);
@@ -65,7 +60,11 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_set_local(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
+    fn emit_set_local(
+        &mut self,
+        chunk: &mut Chunk,
+        scanner: &mut Scanner,
+    ) -> Result<(), String> {
         scanner.scan().unwrap(); //function name?
         let var_name = scanner.scan().unwrap().atom()?; //first arg
         parse(scanner, chunk, self)?;
@@ -116,21 +115,13 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_defun(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
+    fn emit_lambda(
+        &mut self,
+        chunk: &mut Chunk,
+        scanner: &mut Scanner,
+    ) -> Result<(), String> {
         chunk.write_opcode(OpCode::OpConstant, 1);
-        let lambda = parse_defun(scanner, self)?;
-        let idx = chunk.add_constant(Value::Obj(Box::new(lambda.clone())));
-        chunk.write_constant(idx as u8, 1);
-        let idx = self.set_local(dbg!(lambda.get_function().name));
-        chunk.write_opcode(OpCode::OpSetLocal, 0);
-        chunk.write_constant(idx as u8, 0);
-
-        Ok(())
-    }
-
-    fn emit_lambda(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
-        chunk.write_opcode(OpCode::OpConstant, 1);
-        let lambda = parse_defun(scanner, self)?;
+        let lambda = parse_lambda(scanner, self)?;
         let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
         chunk.write_constant(idx as u8, 1);
         Ok(())
@@ -326,37 +317,13 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
         name,
     };
 
-    let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())), "lambda");
+    let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())));
 
     for arg in args {
         compiler.set_local(arg.atom()?);
     }
     parse(scanner, &mut closure.chunk, &mut compiler)?;
     closure.chunk.write_opcode(OpCode::OpReturn, 1);
-    Ok(Object::Function(Box::new(closure)))
-}
-
-fn parse_defun(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object, String> {
-    assert!(scanner.scan().unwrap() == Token::Atom("defun".to_string()));
-    let name = scanner.scan().unwrap().atom().unwrap();
-    let args = read_shallow_list(scanner).unwrap();
-    let mut closure = Closure {
-        params: args
-            .iter()
-            .map(|x| x.atom().unwrap())
-            .collect::<Vec<String>>(),
-        chunk: Chunk::new(&name),
-        name: name.clone(),
-    };
-
-    let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())), &name);
-
-    for arg in args {
-        compiler.set_local(arg.atom()?);
-    }
-    parse(scanner, &mut closure.chunk, &mut compiler)?;
-    closure.chunk.write_opcode(OpCode::OpReturn, 1);
-    println!("{}", closure.chunk);
     Ok(Object::Function(Box::new(closure)))
 }
 
@@ -384,7 +351,6 @@ fn read_atom(
         "not" => compiler.emit_not(chunk, atom, scanner),
         "do" => compiler.emit_do(chunk, scanner),
         "lambda" => compiler.emit_lambda(chunk, scanner),
-        "defun" => compiler.emit_defun(chunk, scanner),
         _ => {
             if INT_RE.is_match(atom) {
                 compiler.emit_integer(chunk, atom)
@@ -397,4 +363,6 @@ fn read_atom(
             }
         }
     }
+
+
 }

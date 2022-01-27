@@ -24,7 +24,7 @@ fn repl(debug: bool) {
     rl.load_history(".flang-history");
     let mut prompt: String = "user> ".to_string();
     let mut vm = VirtualMachine::new(debug);
-    let mut comp = Compiler::new(None);
+    let mut comp = Compiler::new(None, "main");
     let mut chunk = Chunk::new("test chunk");
 
     loop {
@@ -68,7 +68,7 @@ fn run_file(filename: String, debug: bool) {
     let source = fs::read_to_string(filename).unwrap();
 
     let mut chunk = Chunk::new("test chunk");
-    let mut comp = Compiler::new(None);
+    let mut comp = Compiler::new(None, "main");
     compile(&source, &mut chunk, &mut comp);
     println!("{}", chunk);
     let mut vm = VirtualMachine::new(debug);
