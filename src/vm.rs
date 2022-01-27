@@ -157,7 +157,7 @@ impl VirtualMachine {
                 OpCode::OpGetLocal => {
                     let slot = chunk.get_constant_index(ip + 1);
                     let fp = self.frames.last().unwrap().stackpointer;
-                    self.stack.push(self.stack[slot as usize + fp].clone());
+                    self.stack.push(dbg!(self.stack[slot as usize + fp].clone()));
                     self.set_ip(ip + 2);
                 }
                 OpCode::OpJmpIfFalse => {
