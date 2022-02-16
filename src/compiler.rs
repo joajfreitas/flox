@@ -5,12 +5,15 @@ use regex::{Captures, Regex};
 use crate::chunk::{Chunk, Closure, Object, OpCode, Value};
 use crate::scanner::{Scanner, Token};
 
+
 #[derive(Clone)]
 pub struct Compiler {
     context: String,
     locals: Vec<String>,
     up: Option<Box<Compiler>>,
+    upvals: Vec<usize>,
 }
+
 
 impl Compiler {
     pub fn new(up: Option<Box<Compiler>>, context: &str) -> Compiler {
@@ -18,7 +21,23 @@ impl Compiler {
             context: context.to_string(),
             locals: Vec::new(),
             up,
+            upvals: Vec::new(),
         }
+    }
+
+    fn resolve_upvalue(&mut self, name: &Token) -> Option<usize> {
+        self.up.clone()?;
+        let local = self.get_local(name.atom().unwrap());
+        if !local.is_none() {
+            return Some(self.add_upval(local.unwrap()));
+        }
+       
+       None
+    }
+
+    fn add_upval(&mut self, upvalue: usize) -> usize {
+        self.upvals.push(upvalue);
+        self.upvals.len()
     }
 
     fn set_local(&mut self, name: String) -> usize {
