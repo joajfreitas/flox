@@ -178,9 +178,9 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
     Ok(Object::Function(Box::new(closure)))
 }
 
-fn parse_defun(scanner:&mut Scanner, compiler: &mut Compiler) -> Result<Object, String> {
+fn parse_defun(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object, String> {
     assert!(scanner.scan().unwrap() == Token::Atom("defun".to_string()));
-    let tok = dbg!(scanner.scan().unwrap());
+    let _tok = dbg!(scanner.scan().unwrap());
     let args = read_shallow_list(scanner).unwrap();
     let mut rng = rand::thread_rng();
     let r: u32 = rng.gen();
@@ -286,9 +286,9 @@ fn read_atom(
             let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
             chunk.write_constant(idx as u8, 1);
             return Ok(());
-        },
+        }
         "defun" => {
-            let lambda = parse_defun(scanner, compiler)?;
+            let _lambda = parse_defun(scanner, compiler)?;
         }
         _ => {}
     }
