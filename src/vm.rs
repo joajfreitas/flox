@@ -157,7 +157,8 @@ impl VirtualMachine {
                 OpCode::OpGetLocal => {
                     let slot = chunk.get_constant_index(ip + 1);
                     let fp = self.frames.last().unwrap().stackpointer;
-                    self.stack.push(dbg!(self.stack[slot as usize + fp].clone()));
+                    self.stack
+                        .push(dbg!(self.stack[slot as usize + fp].clone()));
                     self.set_ip(ip + 2);
                 }
                 OpCode::OpJmpIfFalse => {
@@ -178,7 +179,9 @@ impl VirtualMachine {
                     loop {
                         let v = self.stack.pop().unwrap();
                         if v.is_function() {
-                            let f = v.get_function();
+                            let f = v.get_function().ok_or(VMErr::RuntimeError(
+                                "Failed to find function".to_string(),
+                            ))?;
 
                             let frame = CallFrame {
                                 function: f,

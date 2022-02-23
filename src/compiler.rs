@@ -5,7 +5,6 @@ use regex::{Captures, Regex};
 use crate::chunk::{Chunk, Closure, Object, OpCode, Value};
 use crate::scanner::{Scanner, Token};
 
-
 #[derive(Clone)]
 pub struct Compiler {
     context: String,
@@ -13,7 +12,6 @@ pub struct Compiler {
     up: Option<Box<Compiler>>,
     upvals: Vec<usize>,
 }
-
 
 impl Compiler {
     pub fn new(up: Option<Box<Compiler>>, context: &str) -> Compiler {
@@ -31,8 +29,8 @@ impl Compiler {
         if !local.is_none() {
             return Some(self.add_upval(local.unwrap()));
         }
-       
-       None
+
+        None
     }
 
     fn add_upval(&mut self, upvalue: usize) -> usize {
@@ -140,7 +138,9 @@ impl Compiler {
         let lambda = parse_defun(scanner, self)?;
         let idx = chunk.add_constant(Value::Obj(Box::new(lambda.clone())));
         chunk.write_constant(idx as u8, 1);
-        let idx = self.set_local(dbg!(lambda.get_function().name));
+        let idx = self.set_local(dbg!(
+            lambda.get_function().ok_or("Failed to find function")?.name
+        ));
         chunk.write_opcode(OpCode::OpSetLocal, 0);
         chunk.write_constant(idx as u8, 0);
 

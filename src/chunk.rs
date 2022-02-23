@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Not, Sub};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum OpCode {
     OpReturn,
     OpConstant,
@@ -35,7 +35,7 @@ pub enum OpCode {
     OpCall,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Closure {
     pub params: Vec<String>,
     pub chunk: Chunk,
@@ -64,17 +64,17 @@ pub enum Object {
 }
 
 impl Object {
-    fn get_str(&self) -> &str {
+    fn get_str(&self) -> Option<&str> {
         match self {
-            Object::Str(s) => s,
-            _ => panic!(),
+            Object::Str(s) => Some(s),
+            _ => None,
         }
     }
 
-    pub fn get_function(&self) -> Box<Closure> {
+    pub fn get_function(&self) -> Option<Box<Closure>> {
         match self {
-            Object::Function(f) => f.clone(),
-            _ => panic!(),
+            Object::Function(f) => Some(f.clone()),
+            _ => None,
         }
     }
 
@@ -106,19 +106,17 @@ impl Value {
         }
     }
 
-    pub fn get_str(&self) -> &str {
+    pub fn get_str(&self) -> Option<&str> {
         match self {
             Value::Obj(obj) => obj.get_str(),
-            _ => {
-                panic!()
-            }
+            _ => None,
         }
     }
 
-    pub fn get_function(&self) -> Box<Closure> {
+    pub fn get_function(&self) -> Option<Box<Closure>> {
         match self {
             Value::Obj(obj) => obj.get_function(),
-            _ => panic!(),
+            _ => None,
         }
     }
 
@@ -266,7 +264,7 @@ impl fmt::Display for Value {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Element {
     OpCode(OpCode),
     Constant(u8),
@@ -281,7 +279,7 @@ impl Element {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Chunk {
     name: String,
     code: Vec<Element>,
@@ -477,4 +475,66 @@ impl Chunk {
         s.push_str(&ss);
         Some((s, i))
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fixture_closure() -> Closure {
+        Closure {
+            params: vec!["x".to_string(), "y".to_string()],
+            chunk: Chunk::new("test_chunk"),
+            name: "test_closure".to_string(),
+        }
+    }
+
+    #[test]
+    fn test_chunk_debug() {
+        let closure = fixture_closure();
+        let result = format!("{:?}", closure);
+        assert_eq!(result, "(test_closure (x y))")
+    }
+
+    #[test]
+    fn test_object_get_str_with_value() {
+        let object = Object::Str("some string".to_string());
+
+        assert_eq!(object.get_str(), Some("some string"))
+    }
+
+    #[test]
+    fn test_object_get_str_without_value() {
+        let object = Object::Function(Box::new(fixture_closure()));
+
+        assert_eq!(object.get_str(), None)
+    }
+
+    #[test]
+    fn test_object_get_function_with_value() -> Result<(), String> {
+        let object = Object::Function(Box::new(fixture_closure()));
+
+        let function = object.get_function().ok_or("Failed to find function")?;
+        assert_eq!(function.name, "test_closure");
+        assert_eq!(function.params, vec!["x", "y"]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_object_get_function_without_value() {
+        let object = Object::Str("some string".to_string());
+
+        assert_eq!(object.get_function(), None)
+    }
+
+    #[test]
+    fn test_object_is_function() {
+        let function = Object::Function(Box::new(fixture_closure()));
+        let string = Object::Str("some string".to_string());
+
+        assert_eq!(function.is_function(), true);
+        assert_eq!(string.is_function(), false);
+    }
+
+
 }
