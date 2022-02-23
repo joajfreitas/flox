@@ -138,7 +138,9 @@ impl Compiler {
         let lambda = parse_defun(scanner, self)?;
         let idx = chunk.add_constant(Value::Obj(Box::new(lambda.clone())));
         chunk.write_constant(idx as u8, 1);
-        let idx = self.set_local(dbg!(lambda.get_function().name));
+        let idx = self.set_local(dbg!(
+            lambda.get_function().ok_or("Failed to find function")?.name
+        ));
         chunk.write_opcode(OpCode::OpSetLocal, 0);
         chunk.write_constant(idx as u8, 0);
 
