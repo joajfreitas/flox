@@ -92,17 +92,17 @@ pub enum Value {
 }
 
 impl Value {
-    pub fn get_number(&self) -> f64 {
+    pub fn get_number(&self) -> Option<f64> {
         match self {
-            Value::Number(f) => *f,
-            _ => panic!(),
+            Value::Number(f) => Some(*f),
+            _ => None,
         }
     }
 
-    pub fn get_bool(&self) -> bool {
+    pub fn get_bool(&self) -> Option<bool> {
         match self {
-            Value::Bool(b) => *b,
-            _ => panic!(),
+            Value::Bool(b) => Some(*b),
+            _ => None,
         }
     }
 
@@ -536,5 +536,21 @@ mod tests {
         assert_eq!(string.is_function(), false);
     }
 
+    #[test]
+    fn test_value_get_number() {
+        let number = Value::Number(1.0);
+        assert_eq!(number.get_number(), Some(1.0));
 
+        let boolean = Value::Bool(true);
+        assert_eq!(boolean.get_number(), None)
+    }
+
+    #[test]
+    fn test_value_get_bool() {
+        let boolean = Value::Bool(true);
+        assert_eq!(boolean.get_bool(), Some(true));
+
+        let number = Value::Number(1.0);
+        assert_eq!(number.get_bool(), None);
+    }
 }
