@@ -164,7 +164,7 @@ impl VirtualMachine {
                 OpCode::OpJmpIfFalse => {
                     let idx = chunk.get_constant_index(ip + 1);
                     let pred = self.stack.pop().unwrap();
-                    if !pred.get_bool() {
+                    if !pred.get_bool().ok_or(VMErr::RuntimeError("Failed to get boolean".to_string()))? {
                         self.set_ip(idx as usize);
                     } else {
                         self.set_ip(ip + 2);
