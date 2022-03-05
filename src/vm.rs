@@ -101,7 +101,7 @@ impl VirtualMachine {
             }
             let opcode = chunk.get_opcode(ip).unwrap();
             match opcode {
-                OpCode::OpReturn => {
+                OpCode::OpRet => {
                     if self.frames.len() == 1 {
                         self.ip = self.get_ip() + 1;
                         match self.stack.last() {
@@ -120,12 +120,12 @@ impl VirtualMachine {
                         self.set_ip(self.get_ip() + 1);
                     }
                 }
-                OpCode::OpConstant => {
+                OpCode::OpConst => {
                     let (_, value) = chunk.get_constant(ip + 1);
                     self.stack.push(value.clone());
                     self.set_ip(ip + 2);
                 }
-                OpCode::OpConstantLong => {
+                OpCode::OpConstLong => {
                     let value = chunk.get_constant_long(ip + 1).unwrap();
                     self.stack.push(value.clone());
                     self.set_ip(ip + 4);
@@ -134,9 +134,9 @@ impl VirtualMachine {
                 OpCode::OpTrue => nullary!(|| { Value::Bool(true) }, self, ip),
                 OpCode::OpFalse => nullary!(|| { Value::Bool(false) }, self, ip),
                 OpCode::OpAdd => binary!(|x, y| { x + y }, self, ip),
-                OpCode::OpSubtract => binary!(|x, y| { x - y }, self, ip),
-                OpCode::OpMultiply => binary!(|x, y| { x * y }, self, ip),
-                OpCode::OpDivide => binary!(|x, y| { x / y }, self, ip),
+                OpCode::OpSub => binary!(|x, y| { x - y }, self, ip),
+                OpCode::OpMul => binary!(|x, y| { x * y }, self, ip),
+                OpCode::OpDiv => binary!(|x, y| { x / y }, self, ip),
                 OpCode::OpNot => unary!(|x: Value| { !x }, self, ip),
                 OpCode::OpEq => binary!(|x, y| { Value::Bool(x == y) }, self, ip),
                 OpCode::OpNe => binary!(|x, y| { Value::Bool(x != y) }, self, ip),
@@ -231,7 +231,7 @@ mod tests {
     fn test_basic() {
         let mut vm = VirtualMachine::new(false);
         let mut chunk = Chunk::new("test");
-        chunk.write_opcode(OpCode::OpReturn, 1);
+        chunk.write_opcode(OpCode::OpRet, 1);
         vm.run(&mut chunk);
     }
 }

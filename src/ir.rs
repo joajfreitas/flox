@@ -69,15 +69,15 @@ fn tokenize(source: &str) -> Vec<String> {
 #[allow(dead_code)]
 fn opcode_to_string(opcode: OpCode) -> &'static str {
     match opcode {
-        OpCode::OpReturn => "RET",
-        OpCode::OpConstant => "CONST",
-        OpCode::OpConstantLong => "CONST_LONG",
+        OpCode::OpRet => "RET",
+        OpCode::OpConst => "CONST",
+        OpCode::OpConstLong => "CONST_LONG",
         OpCode::OpSetLocal => "SETLOCAL",
         OpCode::OpGetLocal => "GETLOCAL",
         OpCode::OpAdd => "ADD",
-        OpCode::OpSubtract => "SUB",
-        OpCode::OpMultiply => "MUL",
-        OpCode::OpDivide => "DIV",
+        OpCode::OpSub => "SUB",
+        OpCode::OpMul=> "MUL",
+        OpCode::OpDiv => "DIV",
         OpCode::OpNil => "NIL",
         OpCode::OpTrue => "TRUE",
         OpCode::OpFalse => "FALSE",
@@ -103,15 +103,15 @@ fn opcode_to_string(opcode: OpCode) -> &'static str {
 #[allow(dead_code)]
 fn string_to_opcode(s: &str) -> OpCode {
     match s {
-        "RET" => OpCode::OpReturn,
-        "CONST" => OpCode::OpConstant,
-        "CONST_LONG" => OpCode::OpConstantLong,
+        "RET" => OpCode::OpRet,
+        "CONST" => OpCode::OpConst,
+        "CONST_LONG" => OpCode::OpConstLong,
         "SETLOCAL" => OpCode::OpSetLocal,
         "GETLOCAL" => OpCode::OpGetLocal,
         "ADD" => OpCode::OpAdd,
-        "SUB" => OpCode::OpSubtract,
-        "MUL" => OpCode::OpMultiply,
-        "DIV" => OpCode::OpDivide,
+        "SUB" => OpCode::OpSub,
+        "MUL" => OpCode::OpMul,
+        "DIV" => OpCode::OpDiv,
         "NIL" => OpCode::OpNil,
         "TRUE" => OpCode::OpTrue,
         "FALSE" => OpCode::OpFalse,
