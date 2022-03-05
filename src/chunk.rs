@@ -9,17 +9,31 @@ pub mod value;
 use closure::Closure;
 pub use value::Value;
 
+#[macro_export]
+macro_rules! op {
+    ($opcode:expr) => {{
+        Element::OpCode($opcode)
+    }};
+}
+
+#[macro_export]
+macro_rules! constant {
+    ($value:expr) => {{
+        Element::Constant($value)
+    }};
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OpCode {
-    OpReturn,
-    OpConstant,
-    OpConstantLong,
+    OpRet,
+    OpConst,
+    OpConstLong,
     OpSetLocal,
     OpGetLocal,
     OpAdd,
-    OpSubtract,
-    OpMultiply,
-    OpDivide,
+    OpSub,
+    OpMul,
+    OpDiv,
     OpNil,
     OpTrue,
     OpFalse,
@@ -238,11 +252,11 @@ impl Chunk {
 
         let opcode = self.get_opcode(index)?;
         let (ss, i) = match opcode {
-            OpCode::OpConstant => {
+            OpCode::OpConst => {
                 let (n, c) = self.get_constant(index + 1);
                 (format!("{:?} {}:'{}'\n", opcode, n, c), 2)
             }
-            OpCode::OpConstantLong => {
+            OpCode::OpConstLong => {
                 let value = self.get_constant_long(index + 1).unwrap();
                 (format!("{:?} '{}'\n", opcode, value), 4)
             }

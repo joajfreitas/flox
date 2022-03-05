@@ -137,7 +137,7 @@ impl Compiler {
     }
 
     fn emit_defun(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
-        chunk.write_opcode(OpCode::OpConstant, 1);
+        chunk.write_opcode(OpCode::OpConst, 1);
         let lambda = parse_defun(scanner, self)?;
         let idx = chunk.add_constant(Value::Obj(Box::new(lambda.clone())));
         chunk.write_constant(idx as u8, 1);
@@ -151,7 +151,7 @@ impl Compiler {
     }
 
     fn emit_lambda(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
-        chunk.write_opcode(OpCode::OpConstant, 1);
+        chunk.write_opcode(OpCode::OpConst, 1);
         let lambda = parse_lambda(scanner, self)?;
         let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
         chunk.write_constant(idx as u8, 1);
@@ -160,13 +160,13 @@ impl Compiler {
 
     fn emit_integer(&self, chunk: &mut Chunk, atom: &str) -> Result<(), String> {
         let i: i32 = atom.parse().unwrap();
-        chunk.write_opcode(OpCode::OpConstant, 1);
+        chunk.write_opcode(OpCode::OpConst, 1);
         let constant = chunk.add_constant(Value::Number(i as f64));
         chunk.write_constant(constant as u8, 1);
         Ok(())
     }
     fn emit_string(&self, chunk: &mut Chunk, atom: &str) -> Result<(), String> {
-        chunk.write_opcode(OpCode::OpConstant, 1);
+        chunk.write_opcode(OpCode::OpConst, 1);
         let s = Object::Str(unescape_str(&atom[1..atom.len() - 1]));
         let constant = chunk.add_constant(Value::Obj(Box::new(s)));
         chunk.write_constant(constant as u8, 1);
@@ -215,7 +215,7 @@ impl Compiler {
 pub fn compile(source: &str, chunk: &mut Chunk, compiler: &mut Compiler) -> Result<(), String> {
     let mut scanner = Scanner::new(source);
     parse(&mut scanner, chunk, compiler)?;
-    chunk.write_opcode(OpCode::OpReturn, 1);
+    chunk.write_opcode(OpCode::OpRet, 1);
 
     Ok(())
 }
@@ -268,9 +268,9 @@ fn binary(
 
     match op {
         "+" => chunk.write_opcode(OpCode::OpAdd, 1),
-        "-" => chunk.write_opcode(OpCode::OpSubtract, 1),
-        "*" => chunk.write_opcode(OpCode::OpMultiply, 1),
-        "/" => chunk.write_opcode(OpCode::OpDivide, 1),
+        "-" => chunk.write_opcode(OpCode::OpSub, 1),
+        "*" => chunk.write_opcode(OpCode::OpMul, 1),
+        "/" => chunk.write_opcode(OpCode::OpDiv, 1),
         "=" => chunk.write_opcode(OpCode::OpEq, 1),
         "!=" => chunk.write_opcode(OpCode::OpNe, 1),
         ">" => chunk.write_opcode(OpCode::OpBt, 1),
@@ -354,7 +354,7 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
         compiler.set_local(arg.atom()?);
     }
     parse(scanner, &mut closure.chunk, &mut compiler)?;
-    closure.chunk.write_opcode(OpCode::OpReturn, 1);
+    closure.chunk.write_opcode(OpCode::OpRet, 1);
     Ok(Object::Function(Box::new(closure)))
 }
 
@@ -377,7 +377,7 @@ fn parse_defun(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object,
         compiler.set_local(arg.atom()?);
     }
     parse(scanner, &mut closure.chunk, &mut compiler)?;
-    closure.chunk.write_opcode(OpCode::OpReturn, 1);
+    closure.chunk.write_opcode(OpCode::OpRet, 1);
     println!("{}", closure.chunk);
     Ok(Object::Function(Box::new(closure)))
 }
@@ -418,5 +418,47 @@ fn read_atom(
                 compiler.emit_function_call(chunk, atom, scanner)
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::*;
+
+    use crate::chunk::Element;
+    use crate::{constant, op};
+
+    #[fixture]
+    fn compiler() -> Compiler {
+        Compiler::new(None, "main")
+    }
+
+    #[fixture]
+    fn chunk() -> Chunk {
+        Chunk::new("main")
+    }
+
+    #[rstest]
+    fn test_compiler_locals(mut compiler: Compiler) {
+        compiler.set_local(String::from("x"));
+        compiler.set_local(String::from("y"));
+        assert_eq!(compiler.get_local(String::from("x")), Some(0));
+        assert_eq!(compiler.get_local(String::from("y")), Some(1));
+    }
+
+    #[rstest]
+    fn test_emit_nil(mut compiler: Compiler, mut chunk: Chunk) {
+        compiler.emit_nil(&mut chunk).unwrap();
+        assert_eq!(chunk.get_code(), vec![Element::OpCode(OpCode::OpNil)]);
+    }
+
+    #[rstest]
+    fn test_compile(mut compiler: Compiler, mut chunk: Chunk) {
+        compile("1", &mut chunk, &mut compiler);
+        assert_eq!(
+            chunk.get_code(),
+            vec![op!(OpCode::OpConst), constant!(0), op!(OpCode::OpRet)]
+        );
     }
 }
