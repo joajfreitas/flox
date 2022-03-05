@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 use std::fmt;
 
-
-pub mod value;
-pub mod object;
 pub mod closure;
-pub use value::Value;
+pub mod object;
+pub mod value;
 use closure::Closure;
+pub use value::Value;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OpCode {
@@ -39,8 +38,6 @@ pub enum OpCode {
     OpJmp,
     OpCall,
 }
-
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Element {
@@ -81,7 +78,7 @@ impl fmt::Display for Chunk {
         let mut pc: usize = 0;
         loop {
             let (s, inc) = match self.display_instruction(pc) {
-                Some((s,inc)) => (s, inc),
+                Some((s, inc)) => (s, inc),
                 None => return Ok(()),
             };
             pc += inc;
@@ -119,8 +116,7 @@ impl Chunk {
     pub fn get_current_index(&self) -> Result<usize, String> {
         if self.code.len() >= 1 {
             Ok(self.code.len() - 1)
-        }
-        else {
+        } else {
             Err("get_current_index: no code to be found".to_string())
         }
     }
@@ -186,7 +182,6 @@ impl Chunk {
         self.constants.push(value);
         self.constants.len() - 1
     }
-
 
     pub fn get_opcode(&self, index: usize) -> Option<&OpCode> {
         let op = self.code.get(index)?;
@@ -288,9 +283,11 @@ mod tests {
     #[test]
     fn test_element_get_opcode() {
         assert_eq!(Element::Constant(1).get_opcode(), None);
-        assert_eq!(Element::OpCode(OpCode::OpNil).get_opcode(), Some(OpCode::OpNil));
+        assert_eq!(
+            Element::OpCode(OpCode::OpNil).get_opcode(),
+            Some(OpCode::OpNil)
+        );
     }
-
 
     #[test]
     fn test_chunk_get_name() {
@@ -308,7 +305,6 @@ mod tests {
     fn test_chunk_get_current_index() {
         let mut chunk = Chunk::new("test_chunk");
         assert_eq!(chunk.get_current_index().ok(), None);
-
     }
 
     #[test]
@@ -316,7 +312,7 @@ mod tests {
         let mut chunk = Chunk::new("test_chunk");
         chunk.write(Element::OpCode(OpCode::OpNil), 0);
         assert_eq!(chunk.get_current_index().ok(), Some(0));
-        chunk.write(Element::Constant(0),0);
+        chunk.write(Element::Constant(0), 0);
         assert_eq!(chunk.get_current_index().ok(), Some(1));
     }
 
@@ -364,7 +360,10 @@ mod tests {
         assert_eq!(format!("{}", chunk), "===test_chunk===\n");
 
         chunk.write_opcode(OpCode::OpNil, 0);
-        assert_eq!(format!("{}", chunk), "===test_chunk===\n0000 0 OpNil\n================");
+        assert_eq!(
+            format!("{}", chunk),
+            "===test_chunk===\n0000 0 OpNil\n================"
+        );
     }
 
     #[test]

@@ -1,9 +1,9 @@
-use std::fmt;
 use std::cmp::Ordering;
+use std::fmt;
 use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Not, Sub};
 
-use crate::chunk::object::Object;
 use crate::chunk::closure::Closure;
+use crate::chunk::object::Object;
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -185,12 +185,10 @@ impl fmt::Display for Value {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::chunk::Chunk;
-
 
     fn fixture_closure() -> Closure {
         Closure {
@@ -425,5 +423,4 @@ mod tests {
             "(test_closure (x y))"
         );
     }
-
 }
