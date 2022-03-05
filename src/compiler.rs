@@ -2,10 +2,10 @@ use lazy_static::lazy_static;
 use rand::Rng;
 use regex::{Captures, Regex};
 
-use crate::chunk::{Chunk, OpCode};
+use crate::chunk::closure::Closure;
 use crate::chunk::object::Object;
 use crate::chunk::value::Value;
-use crate::chunk::closure::Closure;
+use crate::chunk::{Chunk, OpCode};
 use crate::scanner::{Scanner, Token};
 
 #[derive(Clone)]

@@ -9,7 +9,6 @@ pub struct Closure {
     pub name: String,
 }
 
-
 impl fmt::Debug for Closure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "({} (", self.name)?;
@@ -26,7 +25,7 @@ impl fmt::Debug for Closure {
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::*;
 
     fn fixture_closure() -> Closure {

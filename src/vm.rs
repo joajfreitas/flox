@@ -1,6 +1,6 @@
-use crate::chunk::{Chunk, OpCode};
-use crate::chunk::value::Value;
 use crate::chunk::closure::Closure;
+use crate::chunk::value::Value;
+use crate::chunk::{Chunk, OpCode};
 
 struct CallFrame {
     function: Box<Closure>,
