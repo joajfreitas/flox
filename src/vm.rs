@@ -1,4 +1,6 @@
-use crate::chunk::{Chunk, Closure, OpCode, Value};
+use crate::chunk::{Chunk, OpCode};
+use crate::chunk::value::Value;
+use crate::chunk::closure::Closure;
 
 struct CallFrame {
     function: Box<Closure>,
@@ -164,7 +166,10 @@ impl VirtualMachine {
                 OpCode::OpJmpIfFalse => {
                     let idx = chunk.get_constant_index(ip + 1);
                     let pred = self.stack.pop().unwrap();
-                    if !pred.get_bool().ok_or(VMErr::RuntimeError("Failed to get boolean".to_string()))? {
+                    if !pred
+                        .get_bool()
+                        .ok_or(VMErr::RuntimeError("Failed to get boolean".to_string()))?
+                    {
                         self.set_ip(idx as usize);
                     } else {
                         self.set_ip(ip + 2);
