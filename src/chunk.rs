@@ -1,9 +1,14 @@
-use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
-use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Not, Sub};
 
-#[derive(Debug, Clone, PartialEq)]
+
+pub mod value;
+pub mod object;
+pub mod closure;
+pub use value::Value;
+use closure::Closure;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OpCode {
     OpReturn,
     OpConstant,
@@ -35,234 +40,7 @@ pub enum OpCode {
     OpCall,
 }
 
-#[derive(Clone, PartialEq)]
-pub struct Closure {
-    pub params: Vec<String>,
-    pub chunk: Chunk,
-    pub name: String,
-}
 
-impl fmt::Debug for Closure {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({} (", self.name)?;
-        for (i, param) in self.params.iter().enumerate() {
-            if i + 1 == self.params.len() {
-                write!(f, "{}", param)?;
-            } else {
-                write!(f, "{} ", param)?;
-            }
-        }
-
-        write!(f, "))")
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Object {
-    Str(String),
-    Function(Box<Closure>),
-}
-
-impl Object {
-    fn get_str(&self) -> Option<&str> {
-        match self {
-            Object::Str(s) => Some(s),
-            _ => None,
-        }
-    }
-
-    pub fn get_function(&self) -> Option<Box<Closure>> {
-        match self {
-            Object::Function(f) => Some(f.clone()),
-            _ => None,
-        }
-    }
-
-    fn is_function(&self) -> bool {
-        matches!(self, Object::Function(_))
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Value {
-    Number(f64),
-    Bool(bool),
-    Nil,
-    Obj(Box<Object>),
-}
-
-impl Value {
-    pub fn get_number(&self) -> Option<f64> {
-        match self {
-            Value::Number(f) => Some(*f),
-            _ => None,
-        }
-    }
-
-    pub fn get_bool(&self) -> Option<bool> {
-        match self {
-            Value::Bool(b) => Some(*b),
-            _ => None,
-        }
-    }
-
-    pub fn get_str(&self) -> Option<&str> {
-        match self {
-            Value::Obj(obj) => obj.get_str(),
-            _ => None,
-        }
-    }
-
-    pub fn get_function(&self) -> Option<Box<Closure>> {
-        match self {
-            Value::Obj(obj) => obj.get_function(),
-            _ => None,
-        }
-    }
-
-    pub fn is_nil(&self) -> bool {
-        matches!(self, Value::Nil)
-    }
-
-    pub fn is_number(&self) -> bool {
-        matches!(self, Value::Number(_))
-    }
-
-    pub fn is_bool(&self) -> bool {
-        matches!(self, Value::Bool(_))
-    }
-
-    pub fn is_function(&self) -> bool {
-        match self {
-            Value::Obj(f) => f.is_function(),
-            _ => false,
-        }
-    }
-}
-
-impl PartialEq for Value {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
-            (Value::Number(b1), Value::Number(b2)) => b1 == b2,
-            _ => panic!(),
-        }
-    }
-}
-
-impl Eq for Value {}
-
-impl PartialOrd for Value {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match (self, other) {
-            (Value::Bool(b1), Value::Bool(b2)) => Some(b1.cmp(b2)),
-            (Value::Number(n1), Value::Number(n2)) => n1.partial_cmp(n2),
-            _ => panic!(),
-        }
-    }
-}
-
-impl Add for Value {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        match (&self, &other) {
-            (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 + n2),
-            _ => {
-                println!("add: {} {}", &self, &other);
-                panic!();
-            }
-        }
-    }
-}
-
-impl Sub for Value {
-    type Output = Self;
-
-    fn sub(self, other: Self) -> Self {
-        match (self, other) {
-            (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 - n2),
-            _ => panic!(),
-        }
-    }
-}
-
-impl Mul for Value {
-    type Output = Self;
-
-    fn mul(self, other: Self) -> Self {
-        match (self, other) {
-            (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 * n2),
-            _ => panic!(),
-        }
-    }
-}
-
-impl Div for Value {
-    type Output = Self;
-
-    fn div(self, other: Self) -> Self {
-        match (self, other) {
-            (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 / n2),
-            _ => panic!(),
-        }
-    }
-}
-
-impl BitAnd for Value {
-    type Output = Self;
-    fn bitand(self, rhs: Self) -> Self {
-        match (self, rhs) {
-            (Value::Bool(b1), Value::Bool(b2)) => Value::Bool(b1 & b2),
-            _ => panic!(),
-        }
-    }
-}
-
-impl BitOr for Value {
-    type Output = Self;
-    fn bitor(self, rhs: Self) -> Self {
-        match (self, rhs) {
-            (Value::Bool(b1), Value::Bool(b2)) => Value::Bool(b1 | b2),
-            _ => panic!(),
-        }
-    }
-}
-
-impl BitXor for Value {
-    type Output = Self;
-    fn bitxor(self, rhs: Self) -> Self {
-        match (self, rhs) {
-            (Value::Bool(b1), Value::Bool(b2)) => Value::Bool(b1 ^ b2),
-            _ => panic!(),
-        }
-    }
-}
-
-impl Not for Value {
-    type Output = Self;
-
-    fn not(self) -> Self::Output {
-        match self {
-            Value::Bool(b) => Value::Bool(!b),
-            _ => panic!(),
-        }
-    }
-}
-
-impl fmt::Display for Value {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Value::Number(value) => write!(f, "{:.1}", value),
-            Value::Bool(value) => write!(f, "{:1}", value),
-            Value::Nil => write!(f, "nil"),
-            Value::Obj(obj) => match &**obj {
-                Object::Str(s) => write!(f, "{:1}", s),
-                Object::Function(closure) => write!(f, "{:?}", closure),
-            },
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Element {
@@ -274,6 +52,13 @@ impl Element {
     fn get_constant(&self) -> Option<u8> {
         match self {
             Element::Constant(i) => Some(*i),
+            _ => None,
+        }
+    }
+
+    fn get_opcode(&self) -> Option<OpCode> {
+        match self {
+            Element::OpCode(op) => Some(*op),
             _ => None,
         }
     }
@@ -290,12 +75,15 @@ pub struct Chunk {
 
 impl fmt::Display for Chunk {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "{:?}", self.constants)?;
-        writeln!(f, "{:?}", self.code)?;
+        //writeln!(f, "{:?}", self.constants)?;
+        //writeln!(f, "{:?}", self.code)?;
         writeln!(f, "==={}===", &self.name)?;
         let mut pc: usize = 0;
         loop {
-            let (s, inc) = self.display_instruction(pc).unwrap();
+            let (s, inc) = match self.display_instruction(pc) {
+                Some((s,inc)) => (s, inc),
+                None => return Ok(()),
+            };
             pc += inc;
             write!(f, "{}", s)?;
             if pc >= self.code.len() {
@@ -328,8 +116,13 @@ impl Chunk {
         self.code.clone()
     }
 
-    pub fn get_current_index(&self) -> usize {
-        self.code.len() - 1
+    pub fn get_current_index(&self) -> Result<usize, String> {
+        if self.code.len() >= 1 {
+            Ok(self.code.len() - 1)
+        }
+        else {
+            Err("get_current_index: no code to be found".to_string())
+        }
     }
 
     pub fn write(&mut self, element: Element, line: usize) {
@@ -353,6 +146,14 @@ impl Chunk {
         self.write(Element::Constant((constant >> 16 & 0xFF) as u8), line);
         self.write(Element::Constant((constant >> 8 & 0xFF) as u8), line);
         self.write(Element::Constant((constant & 0xFF) as u8), line);
+    }
+
+    pub fn len(&self) -> usize {
+        self.code.len()
+    }
+
+    pub fn is_ip_in_range(&self, ip: usize) -> bool {
+        self.code.len() > ip
     }
 
     fn annotate_line(&mut self, line: usize) {
@@ -386,17 +187,6 @@ impl Chunk {
         self.constants.len() - 1
     }
 
-    pub fn len(&self) -> usize {
-        self.code.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.code.len() == 0
-    }
-
-    pub fn is_ip_in_range(&self, ip: usize) -> bool {
-        self.code.len() > ip
-    }
 
     pub fn get_opcode(&self, index: usize) -> Option<&OpCode> {
         let op = self.code.get(index)?;
@@ -405,14 +195,14 @@ impl Chunk {
             Element::OpCode(opcode) => Some(opcode),
             _ => {
                 println!("Expected opcode got: {:?}", self.code[index]);
-                panic!();
+                None
             }
         }
     }
 
-    pub fn get_constant_index(&self, index: usize) -> u8 {
+    pub fn get_constant_index(&self, index: usize) -> usize {
         match &self.code[index] {
-            Element::Constant(i) => *i,
+            Element::Constant(i) => *i as usize,
             _ => {
                 println!("Expected Constant got: {:?}", self.code[index]);
                 panic!();
@@ -421,7 +211,7 @@ impl Chunk {
     }
 
     pub fn get_constant(&self, index: usize) -> (usize, &Value) {
-        let idx: usize = self.get_constant_index(index) as usize;
+        let idx: usize = self.get_constant_index(index);
         (idx, &self.constants[idx])
     }
 
@@ -490,67 +280,108 @@ mod tests {
     }
 
     #[test]
-    fn test_chunk_debug() {
-        let closure = fixture_closure();
-        let result = format!("{:?}", closure);
-        assert_eq!(result, "(test_closure (x y))")
+    fn test_element_get_constant() {
+        assert_eq!(Element::Constant(1).get_constant(), Some(1));
+        assert_eq!(Element::OpCode(OpCode::OpNil).get_constant(), None);
     }
 
     #[test]
-    fn test_object_get_str_with_value() {
-        let object = Object::Str("some string".to_string());
+    fn test_element_get_opcode() {
+        assert_eq!(Element::Constant(1).get_opcode(), None);
+        assert_eq!(Element::OpCode(OpCode::OpNil).get_opcode(), Some(OpCode::OpNil));
+    }
 
-        assert_eq!(object.get_str(), Some("some string"))
+
+    #[test]
+    fn test_chunk_get_name() {
+        let chunk = Chunk::new("test_chunk");
+        assert_eq!(chunk.get_name(), "test_chunk");
     }
 
     #[test]
-    fn test_object_get_str_without_value() {
-        let object = Object::Function(Box::new(fixture_closure()));
-
-        assert_eq!(object.get_str(), None)
+    fn test_chunk_get_code() {
+        let mut chunk = Chunk::new("test_chunk");
+        assert_eq!(chunk.get_code(), vec![]);
     }
 
     #[test]
-    fn test_object_get_function_with_value() -> Result<(), String> {
-        let object = Object::Function(Box::new(fixture_closure()));
+    fn test_chunk_get_current_index() {
+        let mut chunk = Chunk::new("test_chunk");
+        assert_eq!(chunk.get_current_index().ok(), None);
 
-        let function = object.get_function().ok_or("Failed to find function")?;
-        assert_eq!(function.name, "test_closure");
-        assert_eq!(function.params, vec!["x", "y"]);
-        Ok(())
     }
 
     #[test]
-    fn test_object_get_function_without_value() {
-        let object = Object::Str("some string".to_string());
-
-        assert_eq!(object.get_function(), None)
+    fn test_chunk_write() {
+        let mut chunk = Chunk::new("test_chunk");
+        chunk.write(Element::OpCode(OpCode::OpNil), 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(0));
+        chunk.write(Element::Constant(0),0);
+        assert_eq!(chunk.get_current_index().ok(), Some(1));
     }
 
     #[test]
-    fn test_object_is_function() {
-        let function = Object::Function(Box::new(fixture_closure()));
-        let string = Object::Str("some string".to_string());
-
-        assert_eq!(function.is_function(), true);
-        assert_eq!(string.is_function(), false);
+    fn test_chunk_write_opcode() {
+        let mut chunk = Chunk::new("test_chunk");
+        chunk.write_opcode(OpCode::OpNil, 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(0));
+        chunk.write_opcode(OpCode::OpNil, 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(1));
     }
 
     #[test]
-    fn test_value_get_number() {
-        let number = Value::Number(1.0);
-        assert_eq!(number.get_number(), Some(1.0));
-
-        let boolean = Value::Bool(true);
-        assert_eq!(boolean.get_number(), None)
+    fn test_chunk_write_constant() {
+        let mut chunk = Chunk::new("test_chunk");
+        chunk.write_constant(0, 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(0));
+        chunk.write_constant(1, 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(1));
     }
 
     #[test]
-    fn test_value_get_bool() {
-        let boolean = Value::Bool(true);
-        assert_eq!(boolean.get_bool(), Some(true));
+    fn test_chunk_rewrite_constant() {
+        let mut chunk = Chunk::new("test_chunk");
+        let idx = chunk.add_constant(Value::Number(2.0));
+        chunk.write_constant(idx as u8, 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(0));
 
-        let number = Value::Number(1.0);
-        assert_eq!(number.get_bool(), None);
+        chunk.rewrite_constant(idx, 1);
+        assert_eq!(chunk.get_constant_index(idx), 1);
+    }
+
+    #[test]
+    fn test_chunk_write_constant_long() {
+        let mut chunk = Chunk::new("test_chunk");
+        chunk.write_constant_long(0, 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(2));
+        chunk.write_constant_long(1, 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(5));
+    }
+
+    #[test]
+    fn test_chunk_display() {
+        let mut chunk = Chunk::new("test_chunk");
+        assert_eq!(format!("{}", chunk), "===test_chunk===\n");
+
+        chunk.write_opcode(OpCode::OpNil, 0);
+        assert_eq!(format!("{}", chunk), "===test_chunk===\n0000 0 OpNil\n================");
+    }
+
+    #[test]
+    fn test_is_ip_in_range() {
+        let mut chunk = Chunk::new("test_chunk");
+        assert_eq!(chunk.is_ip_in_range(1), false);
+    }
+
+    #[test]
+    fn test_annotate_line() {
+        let mut chunk = Chunk::new("test_chunk");
+        chunk.annotate_line(1);
+        chunk.annotate_line(0);
+        chunk.annotate_line(0);
+
+        assert_eq!(*chunk.get_line(0), 1_usize);
+        assert_eq!(*chunk.get_line(1), 0_usize);
+        assert_eq!(*chunk.get_line(2), 0_usize);
     }
 }

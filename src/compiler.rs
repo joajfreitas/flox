@@ -2,7 +2,10 @@ use lazy_static::lazy_static;
 use rand::Rng;
 use regex::{Captures, Regex};
 
-use crate::chunk::{Chunk, Closure, Object, OpCode, Value};
+use crate::chunk::{Chunk, OpCode};
+use crate::chunk::object::Object;
+use crate::chunk::value::Value;
+use crate::chunk::closure::Closure;
 use crate::scanner::{Scanner, Token};
 
 #[derive(Clone)]
@@ -97,14 +100,14 @@ impl Compiler {
         parse(scanner, chunk, self)?;
         chunk.write_opcode(OpCode::OpJmpIfFalse, 1);
         chunk.write_constant(0, 1); //placeholder
-        let branch_idx = chunk.get_current_index();
+        let branch_idx = chunk.get_current_index()?;
         parse(scanner, chunk, self)?;
         chunk.write_opcode(OpCode::OpJmp, 1);
         chunk.write_constant(0, 1); //placeholder
-        let jmp_idx = chunk.get_current_index();
+        let jmp_idx = chunk.get_current_index()?;
         let false_idx = jmp_idx + 1;
         parse(scanner, chunk, self)?;
-        let end_idx = chunk.get_current_index() + 1;
+        let end_idx = chunk.get_current_index()? + 1;
 
         chunk.rewrite_constant(branch_idx, false_idx as u8);
         chunk.rewrite_constant(jmp_idx, end_idx as u8);
@@ -149,7 +152,7 @@ impl Compiler {
 
     fn emit_lambda(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         chunk.write_opcode(OpCode::OpConstant, 1);
-        let lambda = parse_defun(scanner, self)?;
+        let lambda = parse_lambda(scanner, self)?;
         let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
         chunk.write_constant(idx as u8, 1);
         Ok(())
