@@ -47,6 +47,7 @@ impl Compiler {
     }
 
     fn get_local(&self, name: String) -> Option<usize> {
+        //If the local has the same name has the context then we want to call the same function
         if self.context == name {
             return Some(0);
         }
@@ -74,16 +75,16 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_basic_algebra_operator(
-        &mut self,
-        chunk: &mut Chunk,
-        atom: &str,
-        scanner: &mut Scanner,
-    ) -> Result<(), String> {
-        scanner.scan().unwrap();
-        binary(atom, scanner, chunk, self)?;
-        Ok(())
-    }
+    //fn emit_basic_algebra_operator(
+    //    &mut self,
+    //    chunk: &mut Chunk,
+    //    atom: &str,
+    //    scanner: &mut Scanner,
+    //) -> Result<(), String> {
+    //    scanner.scan().unwrap();
+    //    binary(atom, scanner, chunk, self)?;
+    //    Ok(())
+    //}
 
     fn emit_set_local(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         scanner.scan().unwrap(); //function name?
@@ -400,7 +401,7 @@ fn read_atom(
         "true" => compiler.emit_true(chunk),
         "false" => compiler.emit_false(chunk),
         "+" | "-" | "*" | "/" | "=" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "nand" | "or"
-        | "nor" | "xor" | "xnor" => compiler.emit_basic_algebra_operator(chunk, atom, scanner),
+        | "nor" | "xor" | "xnor" => compiler.emit_binary_operation(chunk, atom, scanner),
         "set!" => compiler.emit_set_local(chunk, scanner),
         "if" => compiler.emit_if(chunk, scanner),
         "not" => compiler.emit_not(chunk, atom, scanner),
@@ -440,7 +441,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_compiler_locals(mut compiler: Compiler) {
+    fn test_locals(mut compiler: Compiler) {
         compiler.set_local(String::from("x"));
         compiler.set_local(String::from("y"));
         assert_eq!(compiler.get_local(String::from("x")), Some(0));
@@ -448,9 +449,26 @@ mod tests {
     }
 
     #[rstest]
-    fn test_emit_nil(mut compiler: Compiler, mut chunk: Chunk) {
+    fn test_local_same_name_as_module(compiler: Compiler) {
+        assert_eq!(Some(0), compiler.get_local(String::from("main")));
+    }
+
+    #[rstest]
+    fn test_emit_nil(compiler: Compiler, mut chunk: Chunk) {
         compiler.emit_nil(&mut chunk).unwrap();
-        assert_eq!(chunk.get_code(), vec![Element::OpCode(OpCode::OpNil)]);
+        assert_eq!(chunk.get_code(), vec![op!(OpCode::OpNil)]);
+    }
+
+    #[rstest]
+    fn test_emit_true(compiler: Compiler, mut chunk: Chunk) {
+        compiler.emit_true(&mut chunk).unwrap();
+        assert_eq!(chunk.get_code(), vec![op!(OpCode::OpTrue)]);
+    }
+
+    #[rstest]
+    fn test_emit_false(compiler: Compiler, mut chunk: Chunk) {
+        compiler.emit_false(&mut chunk).unwrap();
+        assert_eq!(chunk.get_code(), vec![op!(OpCode::OpFalse)]);
     }
 
     #[rstest]
