@@ -168,7 +168,7 @@ impl VirtualMachine {
                     let pred = self.stack.pop().unwrap();
                     if !pred
                         .get_bool()
-                        .ok_or(VMErr::RuntimeError("Failed to get boolean".to_string()))?
+                        .ok_or_else(|| VMErr::RuntimeError("Failed to get boolean".to_string()))?
                     {
                         self.set_ip(idx as usize);
                     } else {
