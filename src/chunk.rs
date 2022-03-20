@@ -129,7 +129,7 @@ impl Chunk {
     }
 
     pub fn get_current_index(&self) -> Result<usize, String> {
-        if self.code.len() >= 1 {
+        if !self.code.is_empty() {
             Ok(self.code.len() - 1)
         } else {
             Err("get_current_index: no code to be found".to_string())
@@ -161,6 +161,10 @@ impl Chunk {
 
     pub fn len(&self) -> usize {
         self.code.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn is_ip_in_range(&self, ip: usize) -> bool {
