@@ -85,6 +85,12 @@ impl Compiler {
     //    binary(atom, scanner, chunk, self)?;
     //    Ok(())
     //}
+    
+    fn emit_binary_operation(&mut self, chunk: &mut Chunk, atom: &str, scanner: &mut Scanner) -> Result<(), String> {
+        scanner.scan().unwrap();
+        binary(atom, scanner, chunk, self)?;
+        Ok(())
+    }
 
     fn emit_set_local(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         scanner.scan().unwrap(); //function name?
