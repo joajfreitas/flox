@@ -184,9 +184,9 @@ impl VirtualMachine {
                     loop {
                         let v = self.stack.pop().unwrap();
                         if v.is_function() {
-                            let f = v.get_function().ok_or(VMErr::RuntimeError(
-                                "Failed to find function".to_string(),
-                            ))?;
+                            let f = v.get_function().ok_or_else(|| {
+                                VMErr::RuntimeError("Failed to find function".to_string())
+                            })?;
 
                             let frame = CallFrame {
                                 function: f,
