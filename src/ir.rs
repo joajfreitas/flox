@@ -76,7 +76,7 @@ fn opcode_to_string(opcode: OpCode) -> &'static str {
         OpCode::OpGetLocal => "GETLOCAL",
         OpCode::OpAdd => "ADD",
         OpCode::OpSub => "SUB",
-        OpCode::OpMul=> "MUL",
+        OpCode::OpMul => "MUL",
         OpCode::OpDiv => "DIV",
         OpCode::OpNil => "NIL",
         OpCode::OpTrue => "TRUE",
