@@ -30,8 +30,8 @@ impl Compiler {
     fn resolve_upvalue(&mut self, name: &Token) -> Option<usize> {
         self.up.clone()?;
         let local = self.get_local(name.atom().unwrap());
-        if !local.is_none() {
-            return Some(self.add_upval(local.unwrap()));
+        if let Some(local) = local {
+            return Some(self.add_upval(local));
         }
 
         None
