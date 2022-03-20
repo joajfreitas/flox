@@ -26,6 +26,7 @@ impl Compiler {
         }
     }
 
+    #[allow(dead_code)]
     fn resolve_upvalue(&mut self, name: &Token) -> Option<usize> {
         self.up.clone()?;
         let local = self.get_local(name.atom().unwrap());
@@ -36,6 +37,7 @@ impl Compiler {
         None
     }
 
+    #[allow(dead_code)]
     fn add_upval(&mut self, upvalue: usize) -> usize {
         self.upvals.push(upvalue);
         self.upvals.len()
