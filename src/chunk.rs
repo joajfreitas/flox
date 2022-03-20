@@ -69,6 +69,7 @@ impl Element {
         }
     }
 
+    #[allow(dead_code)]
     fn get_opcode(&self) -> Option<OpCode> {
         match self {
             Element::OpCode(op) => Some(*op),
