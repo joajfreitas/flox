@@ -318,6 +318,7 @@ mod tests {
     fn test_chunk_get_code() {
         let mut chunk = Chunk::new("test_chunk");
         assert_eq!(chunk.get_code(), vec![]);
+        assert_eq!(chunk.len(), 0);
     }
 
     #[test]
@@ -362,6 +363,12 @@ mod tests {
 
         chunk.rewrite_constant(idx, 1);
         assert_eq!(chunk.get_constant_index(idx), 1);
+    }
+
+    #[test]
+    fn test_chunk_get_opcode(){
+        let mut chunk = Chunk::new("test chunk");
+        chunk.get_opcode(0);
     }
 
     #[test]
