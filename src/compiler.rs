@@ -15,11 +15,8 @@ pub struct UpValue {
 }
 
 impl UpValue {
-    pub fn new(is_local: bool, index: usize) -> UpValue{
-        UpValue {
-            is_local,
-            index,
-        }
+    pub fn new(is_local: bool, index: usize) -> UpValue {
+        UpValue { is_local, index }
     }
 }
 
@@ -69,9 +66,8 @@ impl Compiler {
 
         if let Ctx::FunctionScope(context) = &self.context {
             if context == name {
-                return Some(0)
-            }
-            else {
+                return Some(0);
+            } else {
                 inc += 1;
             }
         }
@@ -140,7 +136,6 @@ impl Compiler {
         chunk.write_constant(idx as u8, 0);
         Ok(())
     }
-
 
     fn emit_if(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         scanner.scan().unwrap();
@@ -226,7 +221,7 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_get_upvalue(&mut self, chunk: &mut Chunk, atom: &str) -> Result<(), String>{
+    fn emit_get_upvalue(&mut self, chunk: &mut Chunk, atom: &str) -> Result<(), String> {
         let id = self.get_upvalue(atom).unwrap();
         self.add_upvalue(id, true);
         chunk.write_opcode(OpCode::OpGetUpvalue, 1);
@@ -397,7 +392,10 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
         name,
     };
 
-    let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())), Ctx::FunctionScope(String::from("lambda")));
+    let mut compiler = Compiler::new(
+        Some(Box::new((*compiler).clone())),
+        Ctx::FunctionScope(String::from("lambda")),
+    );
 
     for arg in args {
         compiler.set_local(arg.atom()?);
@@ -420,7 +418,10 @@ fn parse_defun(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object,
         name: name.clone(),
     };
 
-    let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())), Ctx::FunctionScope(name));
+    let mut compiler = Compiler::new(
+        Some(Box::new((*compiler).clone())),
+        Ctx::FunctionScope(name),
+    );
 
     for arg in args {
         compiler.set_local(arg.atom()?);
@@ -465,8 +466,7 @@ fn read_atom(
                 let idx = compiler.get_local(atom);
                 if let Some(id) = idx {
                     compiler.emit_get_local(chunk, id)
-                }
-                else {
+                } else {
                     compiler.emit_get_upvalue(chunk, atom)
                 }
             } else {

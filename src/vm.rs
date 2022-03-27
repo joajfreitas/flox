@@ -205,13 +205,13 @@ impl VirtualMachine {
                     for arg in args.iter().rev() {
                         self.stack.push(arg.clone());
                     }
-                },
+                }
                 OpCode::OpGetUpvalue => {
                     unimplemented!();
-                },
+                }
                 OpCode::OpSetUpvalue => {
                     unimplemented!();
-                },
+                }
                 OpCode::OpClosure => {
                     unimplemented!();
                 }
