@@ -369,7 +369,7 @@ mod tests {
     }
 
     #[test]
-    fn test_chunk_get_opcode(){
+    fn test_chunk_get_opcode() {
         let mut chunk = Chunk::new("test chunk");
         chunk.get_opcode(0);
     }
