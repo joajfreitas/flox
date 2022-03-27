@@ -177,7 +177,7 @@
 			},
 			{
 				"name": "recursion",
-				"input": "((do (set! f (lambda (x) (if (= x 0) 0 (+ x (f (- x 1)))))) (f 2)))",
+				"input": "((do (defun f (x) (if (= x 0) 0 (+ x (f (- x 1))))) (f 2)))",
 				"output": "3.0",
 				"enabled": false
 			}

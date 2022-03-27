@@ -51,6 +51,8 @@ pub enum OpCode {
     OpJmpIfFalse,
     OpJmp,
     OpCall,
+    OpGetUpvalue,
+    OpSetUpvalue,
 }
 
 #[derive(Debug, Clone, PartialEq)]
