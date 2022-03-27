@@ -6,7 +6,7 @@ pub mod vm;
 
 pub fn rep(input: &str, debug: bool) -> Result<String, String> {
     let mut chk = chunk::Chunk::new("test chunk");
-    let mut comp = compiler::Compiler::new(None, "main");
+    let mut comp = compiler::Compiler::new(None, compiler::Ctx::TopLevel);
     compiler::compile(input, &mut chk, &mut comp)?;
 
     let mut vm = vm::VirtualMachine::new(debug);
