@@ -159,8 +159,12 @@ impl VirtualMachine {
                 OpCode::OpGetLocal => {
                     let slot = chunk.get_constant_index(ip + 1);
                     let fp = dbg!(self.frames.last().unwrap().stackpointer);
+                    let id = slot as usize + fp;
+                    if id >= self.stack.len() {
+                        return Err(VMErr::RuntimeError(String::from("Out of bound access")));
+                    }
                     self.stack
-                        .push(dbg!(self.stack[slot as usize + fp].clone()));
+                        .push(self.stack[id].clone());
                     self.set_ip(ip + 2);
                 }
                 OpCode::OpJmpIfFalse => {
