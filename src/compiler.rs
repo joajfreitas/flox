@@ -62,19 +62,19 @@ impl Compiler {
 
     fn get_local(&self, name: &str) -> Option<usize> {
         //If the local has the same name has the context then we want to call the same function
-        let mut inc = 0;
+        //let mut inc = 0;
 
-        if let Ctx::FunctionScope(context) = &self.context {
-            if context == name {
-                return Some(0);
-            } else {
-                inc += 1;
-            }
-        }
+        //if let Ctx::FunctionScope(context) = &self.context {
+        //    if context == name {
+        //        return Some(0);
+        //    } else {
+        //        inc += 1;
+        //    }
+        //}
 
         for (i, local) in self.locals.iter().enumerate().rev() {
             if local == name {
-                return Some(i + inc);
+                return Some(i);
             }
         }
 
