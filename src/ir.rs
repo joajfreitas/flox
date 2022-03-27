@@ -99,6 +99,7 @@ fn opcode_to_string(opcode: OpCode) -> &'static str {
         OpCode::OpCall => "CALL",
         OpCode::OpGetUpvalue => "GETUP",
         OpCode::OpSetUpvalue => "SETUP",
+        OpCode::OpClosure => "CLOSURE",
     }
 }
 
@@ -135,6 +136,7 @@ fn string_to_opcode(s: &str) -> OpCode {
         "CALL" => OpCode::OpCall,
         "GETUP" => OpCode::OpGetUpvalue,
         "SETUP" => OpCode::OpSetUpvalue,
+        "CLOSURE" => OpCode::OpClosure,
         _ => panic!(),
     }
 }

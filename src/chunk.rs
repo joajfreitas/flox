@@ -53,6 +53,7 @@ pub enum OpCode {
     OpCall,
     OpGetUpvalue,
     OpSetUpvalue,
+    OpClosure,
 }
 
 #[derive(Debug, Clone, PartialEq)]

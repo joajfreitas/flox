@@ -24,17 +24,23 @@ impl UpValue {
 }
 
 #[derive(Clone)]
+pub enum Ctx {
+    TopLevel,
+    FunctionScope(String),
+}
+
+#[derive(Clone)]
 pub struct Compiler {
-    context: String,
+    context: Ctx,
     locals: Vec<String>,
     up: Option<Box<Compiler>>,
     upvals: Vec<UpValue>,
 }
 
 impl Compiler {
-    pub fn new(up: Option<Box<Compiler>>, context: &str) -> Compiler {
+    pub fn new(up: Option<Box<Compiler>>, context: Ctx) -> Compiler {
         Compiler {
-            context: context.to_string(),
+            context,
             locals: Vec::new(),
             up,
             upvals: Vec::new(),
@@ -59,12 +65,20 @@ impl Compiler {
 
     fn get_local(&self, name: &str) -> Option<usize> {
         //If the local has the same name has the context then we want to call the same function
-        if self.context == name {
-            return Some(0);
+        let mut inc = 0;
+
+        if let Ctx::FunctionScope(context) = &self.context {
+            if context == name {
+                return Some(0)
+            }
+            else {
+                inc += 1;
+            }
         }
+
         for (i, local) in self.locals.iter().enumerate().rev() {
-            if local == &name {
-                return Some(i);
+            if local == name {
+                return Some(i + inc);
             }
         }
 
@@ -228,7 +242,7 @@ impl Compiler {
     ) -> Result<(), String> {
         scanner.scan().unwrap();
         chunk.write_opcode(OpCode::OpGetLocal, 1);
-        let idx = match self.get_local(&atom.to_string()) {
+        let idx = match self.get_local(&dbg!(atom).to_string()) {
             Some(idx) => idx,
             None => {
                 return Err(format!("Symbol {} is not defined", atom));
@@ -383,7 +397,7 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
         name,
     };
 
-    let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())), "lambda");
+    let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())), Ctx::FunctionScope(String::from("lambda")));
 
     for arg in args {
         compiler.set_local(arg.atom()?);
@@ -406,7 +420,7 @@ fn parse_defun(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object,
         name: name.clone(),
     };
 
-    let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())), &name);
+    let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())), Ctx::FunctionScope(name));
 
     for arg in args {
         compiler.set_local(arg.atom()?);
@@ -472,7 +486,7 @@ mod tests {
 
     #[fixture]
     fn compiler() -> Compiler {
-        Compiler::new(None, "main")
+        Compiler::new(None, Ctx::TopLevel)
     }
 
     #[fixture]
@@ -484,13 +498,8 @@ mod tests {
     fn test_locals(mut compiler: Compiler) {
         compiler.set_local(String::from("x"));
         compiler.set_local(String::from("y"));
-        assert_eq!(compiler.get_local(String::from("x")), Some(0));
-        assert_eq!(compiler.get_local(String::from("y")), Some(1));
-    }
-
-    #[rstest]
-    fn test_local_same_name_as_module(compiler: Compiler) {
-        assert_eq!(Some(0), compiler.get_local(String::from("main")));
+        assert_eq!(compiler.get_local("x"), Some(0));
+        assert_eq!(compiler.get_local("y"), Some(1));
     }
 
     #[rstest]
