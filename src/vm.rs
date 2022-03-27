@@ -180,9 +180,10 @@ impl VirtualMachine {
                     self.set_ip(idx as usize);
                 }
                 OpCode::OpCall => {
+                    println!("function call");
                     let mut args: Vec<Value> = Vec::new();
                     loop {
-                        let v = self.stack.pop().unwrap();
+                        let v = dbg!(self.stack.pop().unwrap());
                         if v.is_function() {
                             let f = v.get_function().ok_or_else(|| {
                                 VMErr::RuntimeError("Failed to find function".to_string())
@@ -204,6 +205,12 @@ impl VirtualMachine {
                     for arg in args.iter().rev() {
                         self.stack.push(arg.clone());
                     }
+                },
+                OpCode::OpGetUpvalue => {
+                    unimplemented!();
+                }
+                OpCode::OpSetUpvalue => {
+                    unimplemented!();
                 }
             }
         }

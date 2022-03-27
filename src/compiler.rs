@@ -9,11 +9,26 @@ use crate::chunk::{Chunk, OpCode};
 use crate::scanner::{Scanner, Token};
 
 #[derive(Clone)]
+pub struct UpValue {
+    is_local: bool,
+    index: usize,
+}
+
+impl UpValue {
+    pub fn new(is_local: bool, index: usize) -> UpValue{
+        UpValue {
+            is_local,
+            index,
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct Compiler {
     context: String,
     locals: Vec<String>,
     up: Option<Box<Compiler>>,
-    upvals: Vec<usize>,
+    upvals: Vec<UpValue>,
 }
 
 impl Compiler {
@@ -26,29 +41,23 @@ impl Compiler {
         }
     }
 
-    #[allow(dead_code)]
-    fn resolve_upvalue(&mut self, name: &Token) -> Option<usize> {
-        self.up.clone()?;
-        let local = self.get_local(name.atom().unwrap());
-        if let Some(local) = local {
-            return Some(self.add_upval(local));
-        }
+    //#[allow(dead_code)]
+    //fn resolve_upvalue(&mut self, name: &Token) -> Option<usize> {
+    //    self.up.clone()?;
+    //    let local = self.get_local(&name.atom().unwrap());
+    //    if let Some(local) = local {
+    //        return Some(self.add_upval(local));
+    //    }
 
-        None
-    }
-
-    #[allow(dead_code)]
-    fn add_upval(&mut self, upvalue: usize) -> usize {
-        self.upvals.push(upvalue);
-        self.upvals.len()
-    }
+    //    None
+    //}
 
     fn set_local(&mut self, name: String) -> usize {
         self.locals.push(name);
         self.locals.len() - 1
     }
 
-    fn get_local(&self, name: String) -> Option<usize> {
+    fn get_local(&self, name: &str) -> Option<usize> {
         //If the local has the same name has the context then we want to call the same function
         if self.context == name {
             return Some(0);
@@ -60,6 +69,26 @@ impl Compiler {
         }
 
         None
+    }
+
+    fn get_upvalue(&self, name: &str) -> Option<usize> {
+        self.up.as_ref()?;
+
+        if let Some(id) = self.up.as_ref().unwrap().get_local(name) {
+            return Some(id);
+        }
+
+        self.up.as_ref().unwrap().get_upvalue(name)
+    }
+
+    fn add_upvalue(&mut self, id: usize, is_local: bool) -> Option<usize> {
+        for upval in self.upvals.iter() {
+            if upval.index == id && upval.is_local == is_local {
+                return Some(upval.index);
+            }
+        }
+        self.upvals.push(UpValue::new(is_local, id));
+        Some(self.upvals.len())
     }
 
     fn emit_nil(&self, chunk: &mut Chunk) -> Result<(), String> {
@@ -76,17 +105,6 @@ impl Compiler {
         chunk.write_opcode(OpCode::OpFalse, 1);
         Ok(())
     }
-
-    //fn emit_basic_algebra_operator(
-    //    &mut self,
-    //    chunk: &mut Chunk,
-    //    atom: &str,
-    //    scanner: &mut Scanner,
-    //) -> Result<(), String> {
-    //    scanner.scan().unwrap();
-    //    binary(atom, scanner, chunk, self)?;
-    //    Ok(())
-    //}
 
     fn emit_binary_operation(
         &mut self,
@@ -108,6 +126,7 @@ impl Compiler {
         chunk.write_constant(idx as u8, 0);
         Ok(())
     }
+
 
     fn emit_if(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         scanner.scan().unwrap();
@@ -187,15 +206,17 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_get_local(&self, chunk: &mut Chunk, atom: &str) -> Result<(), String> {
+    fn emit_get_local(&self, chunk: &mut Chunk, id: usize) -> Result<(), String> {
         chunk.write_opcode(OpCode::OpGetLocal, 1);
-        let idx = match self.get_local(atom.to_string()) {
-            Some(idx) => idx,
-            None => {
-                return Err(format!("Symbol {} is not defined", atom));
-            }
-        };
-        chunk.write_constant(idx as u8, 1);
+        chunk.write_constant(id as u8, 1);
+        Ok(())
+    }
+
+    fn emit_get_upvalue(&mut self, chunk: &mut Chunk, atom: &str) -> Result<(), String>{
+        let id = self.get_upvalue(atom).unwrap();
+        self.add_upvalue(id, true);
+        chunk.write_opcode(OpCode::OpGetUpvalue, 1);
+        chunk.write_constant(id as u8, 1);
         Ok(())
     }
 
@@ -207,7 +228,7 @@ impl Compiler {
     ) -> Result<(), String> {
         scanner.scan().unwrap();
         chunk.write_opcode(OpCode::OpGetLocal, 1);
-        let idx = match self.get_local(atom.to_string()) {
+        let idx = match self.get_local(&atom.to_string()) {
             Some(idx) => idx,
             None => {
                 return Err(format!("Symbol {} is not defined", atom));
@@ -427,7 +448,13 @@ fn read_atom(
             } else if STR_RE.is_match(atom) {
                 compiler.emit_string(chunk, atom)
             } else if scanner.previous() != Some(Token::LeftParen) {
-                compiler.emit_get_local(chunk, atom)
+                let idx = compiler.get_local(atom);
+                if let Some(id) = idx {
+                    compiler.emit_get_local(chunk, id)
+                }
+                else {
+                    compiler.emit_get_upvalue(chunk, atom)
+                }
             } else {
                 compiler.emit_function_call(chunk, atom, scanner)
             }
