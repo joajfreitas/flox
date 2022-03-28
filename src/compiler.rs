@@ -467,15 +467,16 @@ fn read_atom(
         "print" => {
             scanner.scan().unwrap();
             parse(scanner, chunk, compiler)?;
-            Ok(chunk.write_opcode(OpCode::OpPrint, 1))
+            chunk.write_opcode(OpCode::OpPrint, 1);
+            Ok(())
         }
         "set!" => {
             scanner.scan().unwrap();
             let name = scanner.scan().unwrap().atom()?;
             parse(scanner, chunk, compiler)?;
-            if let Some(id) = compiler.get_local(&name) {
+            if compiler.get_local(&name).is_some() {
                 compiler.emit_set_local(chunk, &name)
-            } else if let Some(id) = compiler.get_upvalue(&name) {
+            } else if compiler.get_upvalue(&name).is_some() {
                 compiler.emit_set_upvalue(chunk, &name)
             } else {
                 compiler.emit_set_local(chunk, &name)
