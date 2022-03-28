@@ -163,8 +163,7 @@ impl VirtualMachine {
                     if id >= self.stack.len() {
                         return Err(VMErr::RuntimeError(String::from("Out of bound access")));
                     }
-                    self.stack
-                        .push(self.stack[id].clone());
+                    self.stack.push(self.stack[id].clone());
                     self.set_ip(ip + 2);
                 }
                 OpCode::OpJmpIfFalse => {
@@ -219,6 +218,14 @@ impl VirtualMachine {
                 OpCode::OpClosure => {
                     unimplemented!();
                 }
+                OpCode::OpPrint => unary!(
+                    |x| {
+                        println!("{:?}", x);
+                        x
+                    },
+                    self,
+                    ip
+                ),
             }
         }
     }

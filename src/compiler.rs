@@ -127,14 +127,27 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_set_local(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
-        scanner.scan().unwrap(); //function name?
-        let var_name = scanner.scan().unwrap().atom()?; //first arg
-        parse(scanner, chunk, self)?;
-        let idx = self.set_local(var_name);
+    fn emit_set_local(&mut self, chunk: &mut Chunk, name: &str) -> Result<(), String> {
+        //scanner.scan().unwrap(); //function name?
+        //let var_name = scanner.scan().unwrap().atom()?; //first arg
+        //parse(scanner, chunk, self)?;
+        let idx = self.set_local(name.to_string());
         chunk.write_opcode(OpCode::OpSetLocal, 0);
         chunk.write_constant(idx as u8, 0);
         Ok(())
+    }
+
+    fn emit_set_upvalue(&mut self, chunk: &mut Chunk, name: &str) -> Result<(), String> {
+        //scanner.scan().unwrap(); //function name?
+        //let var_name = scanner.scan().unwrap().atom()?; //first arg
+        //parse(scanner, chunk, self)?;
+        if let Some(id) = self.get_upvalue(name) {
+            chunk.write_opcode(OpCode::OpSetUpvalue, 0);
+            chunk.write_constant(id as u8, 0);
+            return Ok(());
+        }
+
+        Err(String::from("Failed to set upvalue"))
     }
 
     fn emit_if(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
@@ -451,7 +464,23 @@ fn read_atom(
         "false" => compiler.emit_false(chunk),
         "+" | "-" | "*" | "/" | "=" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "nand" | "or"
         | "nor" | "xor" | "xnor" => compiler.emit_binary_operation(chunk, atom, scanner),
-        "set!" => compiler.emit_set_local(chunk, scanner),
+        "print" => {
+            scanner.scan().unwrap();
+            parse(scanner, chunk, compiler)?;
+            Ok(chunk.write_opcode(OpCode::OpPrint, 1))
+        }
+        "set!" => {
+            scanner.scan().unwrap();
+            let name = scanner.scan().unwrap().atom()?;
+            parse(scanner, chunk, compiler)?;
+            if let Some(id) = compiler.get_local(&name) {
+                compiler.emit_set_local(chunk, &name)
+            } else if let Some(id) = compiler.get_upvalue(&name) {
+                compiler.emit_set_upvalue(chunk, &name)
+            } else {
+                compiler.emit_set_local(chunk, &name)
+            }
+        }
         "if" => compiler.emit_if(chunk, scanner),
         "not" => compiler.emit_not(chunk, atom, scanner),
         "do" => compiler.emit_do(chunk, scanner),

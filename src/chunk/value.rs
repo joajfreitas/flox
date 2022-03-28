@@ -5,7 +5,7 @@ use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Not, Sub};
 use crate::chunk::closure::Closure;
 use crate::chunk::object::Object;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Value {
     Number(f64),
     Bool(bool),
@@ -180,6 +180,22 @@ impl fmt::Display for Value {
             Value::Obj(obj) => match &**obj {
                 Object::Str(s) => write!(f, "{:1}", s),
                 Object::Function(closure) => write!(f, "{:?}", closure),
+            },
+        }
+    }
+}
+
+impl fmt::Debug for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::Number(value) => write!(f, "{}", value),
+            Value::Bool(value) => write!(f, "{}", value),
+            Value::Nil => write!(f, "nil"),
+            Value::Obj(obj) => match &**obj {
+                Object::Str(s) => write!(f, "{}", s),
+                Object::Function(closure) => {
+                    write!(f, "{}", closure.chunk)
+                }
             },
         }
     }
