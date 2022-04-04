@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::chunk::Chunk;
+use crate::compiler::Compiler;
 
 #[derive(Clone, PartialEq)]
 pub struct Closure {

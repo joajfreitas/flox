@@ -44,34 +44,12 @@ impl Compiler {
         }
     }
 
-    //#[allow(dead_code)]
-    //fn resolve_upvalue(&mut self, name: &Token) -> Option<usize> {
-    //    self.up.clone()?;
-    //    let local = self.get_local(&name.atom().unwrap());
-    //    if let Some(local) = local {
-    //        return Some(self.add_upval(local));
-    //    }
-
-    //    None
-    //}
-
     fn set_local(&mut self, name: String) -> usize {
         self.locals.push(name);
         self.locals.len() - 1
     }
 
     fn get_local(&self, name: &str) -> Option<usize> {
-        //If the local has the same name has the context then we want to call the same function
-        //let mut inc = 0;
-
-        //if let Ctx::FunctionScope(context) = &self.context {
-        //    if context == name {
-        //        return Some(0);
-        //    } else {
-        //        inc += 1;
-        //    }
-        //}
-
         for (i, local) in self.locals.iter().enumerate().rev() {
             if local == name {
                 return Some(i);
@@ -202,14 +180,22 @@ impl Compiler {
         chunk.write_opcode(OpCode::OpSetLocal, 0);
         chunk.write_constant(idx as u8, 0);
 
+        println!("defun: {}", chunk);
+        println!("function: {}", lambda.get_function().unwrap().chunk);
+
         Ok(())
     }
 
     fn emit_lambda(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         chunk.write_opcode(OpCode::OpConst, 1);
         let lambda = parse_lambda(scanner, self)?;
-        let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
+        let idx = chunk.add_constant(Value::Obj(Box::new(lambda.clone())));
         chunk.write_constant(idx as u8, 1);
+        chunk.write_opcode(OpCode::OpClosure, 1);
+
+
+        println!("lambda: {}", chunk);
+        println!("function: {}", lambda.get_function().unwrap().chunk);
         Ok(())
     }
 
@@ -396,6 +382,12 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
     let mut rng = rand::thread_rng();
     let r: u32 = rng.gen();
     let name = format!("f{}", r);
+
+    let mut compiler = Compiler::new(
+        Some(Box::new((*compiler).clone())),
+        Ctx::FunctionScope(String::from("lambda")),
+    );
+
     let mut closure = Closure {
         params: args
             .iter()
@@ -405,10 +397,6 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
         name,
     };
 
-    let mut compiler = Compiler::new(
-        Some(Box::new((*compiler).clone())),
-        Ctx::FunctionScope(String::from("lambda")),
-    );
 
     for arg in args {
         compiler.set_local(arg.atom()?);
@@ -422,26 +410,28 @@ fn parse_defun(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object,
     assert!(scanner.scan().unwrap() == Token::Atom("defun".to_string()));
     let name = scanner.scan().unwrap().atom().unwrap();
     let args = read_shallow_list(scanner).unwrap();
+
+    let mut compiler = Compiler::new(
+        Some(Box::new((*compiler).clone())),
+        Ctx::FunctionScope(name.clone()),
+    );
+
     let mut closure = Closure {
         params: args
             .iter()
             .map(|x| x.atom().unwrap())
             .collect::<Vec<String>>(),
         chunk: Chunk::new(&name),
-        name: name.clone(),
+        name: name.clone()
     };
 
-    let mut compiler = Compiler::new(
-        Some(Box::new((*compiler).clone())),
-        Ctx::FunctionScope(name),
-    );
 
     for arg in args {
         compiler.set_local(arg.atom()?);
     }
     parse(scanner, &mut closure.chunk, &mut compiler)?;
     closure.chunk.write_opcode(OpCode::OpRet, 1);
-    println!("{}", closure.chunk);
+
     Ok(Object::Function(Box::new(closure)))
 }
 
@@ -493,8 +483,7 @@ fn read_atom(
             } else if STR_RE.is_match(atom) {
                 compiler.emit_string(chunk, atom)
             } else if scanner.previous() != Some(Token::LeftParen) {
-                let idx = compiler.get_local(atom);
-                if let Some(id) = idx {
+                if let Some(id) = compiler.get_local(atom) {
                     compiler.emit_get_local(chunk, id)
                 } else {
                     compiler.emit_get_upvalue(chunk, atom)
