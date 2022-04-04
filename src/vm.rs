@@ -1,6 +1,7 @@
 use crate::chunk::closure::Closure;
 use crate::chunk::value::Value;
 use crate::chunk::{Chunk, OpCode};
+use crate::compiler::Compiler;
 
 struct CallFrame {
     function: Box<Closure>,

@@ -265,11 +265,11 @@ impl Chunk {
                 let value = self.get_constant_long(index + 1).unwrap();
                 (format!("{:?} '{}'\n", opcode, value), 4)
             }
-            OpCode::OpSetLocal => {
+            OpCode::OpSetLocal | OpCode::OpSetUpvalue => {
                 let (n, c) = self.get_constant(index + 1);
                 (format!("{:?} {}: '{}\n", opcode, n, c), 2)
             }
-            OpCode::OpGetLocal => {
+            OpCode::OpGetLocal | OpCode::OpGetUpvalue => {
                 let n = self.get_constant_index(index + 1);
                 (format!("{:?} {}\n", opcode, n), 2)
             }
