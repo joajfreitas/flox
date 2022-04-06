@@ -21,7 +21,7 @@ impl Token {
 
 #[derive(Debug, Clone)]
 pub struct Scanner {
-    tokens: Vec<String>,
+    tokens: Vec<(String, usize)>,
     pos: usize,
 }
 
@@ -44,7 +44,7 @@ impl Scanner {
             return None;
         }
 
-        let token: &str = &self.tokens[self.pos];
+        let token: &str = &self.tokens[self.pos].0;
         Some(match token {
             "(" => Token::LeftParen,
             ")" => Token::RightParen,
@@ -53,7 +53,7 @@ impl Scanner {
     }
 
     pub fn previous(&self) -> Option<Token> {
-        let token: &str = &self.tokens[self.pos - 1];
+        let token: &str = &self.tokens[self.pos - 1].0;
         match token {
             "(" => Some(Token::LeftParen),
             ")" => Some(Token::RightParen),
@@ -62,25 +62,25 @@ impl Scanner {
     }
 
     pub fn next_tokens(&self) -> Vec<String> {
-        self.tokens[self.pos..].to_vec()
+        self.tokens[self.pos..]
+            .into_iter()
+            .map(|x| x.0.clone())
+            .collect::<Vec<String>>()
     }
 }
 
-fn tokenize(source: &str) -> Vec<String> {
-    lazy_static! {
-        static ref RE: regex::Regex = Regex::new(
-            r###"[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)"###
-        )
-        .unwrap();
+fn tokenize(source: &str) -> Vec<(String, usize)> {
+    let source = source.replace("(", " ( ");
+    let source = source.replace(")", " ) ");
+    let lines = source.split('\n');
+    let mut tokens: Vec<(String, usize)> = Vec::new();
+
+    for (i, line) in lines.enumerate() {
+        for tok in line.split_whitespace() {
+            tokens.push((tok.to_string(), i));
+        }
     }
 
-    let mut tokens: Vec<String> = Vec::new();
-    for cap in RE.captures_iter(source) {
-        if cap[1].starts_with(';') || cap[1].is_empty() {
-            continue;
-        }
-        tokens.push(cap[1].to_string());
-    }
     tokens
 }
 
@@ -97,10 +97,25 @@ mod tests {
     #[test]
     fn test_tokenize() {
         let mut scan = Scanner::new("(+ 1 2)");
-        assert_eq!(scan.scan().unwrap(), Token::LeftParen);
-        assert_eq!(scan.scan().unwrap(), Token::Atom("+".to_string()));
-        assert_eq!(scan.scan().unwrap(), Token::Atom("1".to_string()));
-        assert_eq!(scan.scan().unwrap(), Token::Atom("2".to_string()));
-        assert_eq!(scan.scan().unwrap(), Token::RightParen);
+        assert_eq!(scan.scan().unwrap().type(), Token::LeftParen);
+        assert_eq!(scan.scan().unwrap().type(), Token::Atom("+".to_string()));
+        assert_eq!(scan.scan().unwrap().type(), Token::Atom("1".to_string()));
+        assert_eq!(scan.scan().unwrap().type(), Token::Atom("2".to_string()));
+        assert_eq!(scan.scan().unwrap().type(), Token::RightParen);
+    }
+
+    #[test]
+    fn test_tokenize_with_new_lines() {
+        let mut scan = Scanner::new("(+ 1 2)\n(* 2 3)");
+        assert_eq!(scan.scan().unwrap().type(), Token::LeftParen);
+        assert_eq!(scan.scan().unwrap().type(), Token::Atom("+".to_string()));
+        assert_eq!(scan.scan().unwrap().type(), Token::Atom("1".to_string()));
+        assert_eq!(scan.scan().unwrap().type(), Token::Atom("2".to_string()));
+        assert_eq!(scan.scan().unwrap().type(), Token::RightParen);
+        assert_eq!(scan.scan().unwrap().type(), Token::LeftParen);
+        assert_eq!(scan.scan().unwrap().type(), Token::Atom("*".to_string()));
+        assert_eq!(scan.scan().unwrap().type(), Token::Atom("2".to_string()));
+        assert_eq!(scan.scan().unwrap().type(), Token::Atom("3".to_string()));
+        assert_eq!(scan.scan().unwrap().type(), Token::RightParen);
     }
 }
