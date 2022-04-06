@@ -92,6 +92,7 @@ pub struct Chunk {
 
 impl fmt::Display for Chunk {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "{:?}", self.lines);
         //writeln!(f, "{:?}", self.constants)?;
         //writeln!(f, "{:?}", self.code)?;
         writeln!(f, "==={}===", &self.name)?;

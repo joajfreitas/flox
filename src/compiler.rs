@@ -79,18 +79,18 @@ impl Compiler {
         Some(self.upvals.len())
     }
 
-    fn emit_nil(&self, chunk: &mut Chunk) -> Result<(), String> {
-        chunk.write_opcode(OpCode::OpNil, 1);
+    fn emit_nil(&self, chunk: &mut Chunk, line: usize) -> Result<(), String> {
+        chunk.write_opcode(OpCode::OpNil, line);
         Ok(())
     }
 
-    fn emit_true(&self, chunk: &mut Chunk) -> Result<(), String> {
-        chunk.write_opcode(OpCode::OpTrue, 1);
+    fn emit_true(&self, chunk: &mut Chunk, line: usize) -> Result<(), String> {
+        chunk.write_opcode(OpCode::OpTrue, line);
         Ok(())
     }
 
-    fn emit_false(&self, chunk: &mut Chunk) -> Result<(), String> {
-        chunk.write_opcode(OpCode::OpFalse, 1);
+    fn emit_false(&self, chunk: &mut Chunk, line: usize) -> Result<(), String> {
+        chunk.write_opcode(OpCode::OpFalse, line);
         Ok(())
     }
 
@@ -100,7 +100,6 @@ impl Compiler {
         atom: &str,
         scanner: &mut Scanner,
     ) -> Result<(), String> {
-        scanner.scan().unwrap();
         binary(atom, scanner, chunk, self)?;
         Ok(())
     }
@@ -129,9 +128,9 @@ impl Compiler {
     }
 
     fn emit_if(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
-        scanner.scan().unwrap();
+        let (_, line) = scanner.scan().unwrap();
         parse(scanner, chunk, self)?;
-        chunk.write_opcode(OpCode::OpJmpIfFalse, 1);
+        chunk.write_opcode(OpCode::OpJmpIfFalse, line);
         chunk.write_constant(0, 1); //placeholder
         let branch_idx = chunk.get_current_index()?;
         parse(scanner, chunk, self)?;
@@ -161,7 +160,7 @@ impl Compiler {
     fn emit_do(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         scanner.scan().unwrap();
         loop {
-            if scanner.peek().unwrap() == Token::RightParen {
+            if scanner.peek().unwrap().0 == Token::RightParen {
                 break;
             }
             parse(scanner, chunk, self)?;
@@ -199,18 +198,18 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_integer(&self, chunk: &mut Chunk, atom: &str) -> Result<(), String> {
+    fn emit_integer(&self, chunk: &mut Chunk, atom: &str, line: usize) -> Result<(), String> {
         let i: i32 = atom.parse().unwrap();
-        chunk.write_opcode(OpCode::OpConst, 1);
+        chunk.write_opcode(OpCode::OpConst, line);
         let constant = chunk.add_constant(Value::Number(i as f64));
-        chunk.write_constant(constant as u8, 1);
+        chunk.write_constant(constant as u8, line);
         Ok(())
     }
-    fn emit_string(&self, chunk: &mut Chunk, atom: &str) -> Result<(), String> {
-        chunk.write_opcode(OpCode::OpConst, 1);
+    fn emit_string(&self, chunk: &mut Chunk, atom: &str, line: usize) -> Result<(), String> {
+        chunk.write_opcode(OpCode::OpConst, line);
         let s = Object::Str(unescape_str(&atom[1..atom.len() - 1]));
         let constant = chunk.add_constant(Value::Obj(Box::new(s)));
-        chunk.write_constant(constant as u8, 1);
+        chunk.write_constant(constant as u8, line);
         Ok(())
     }
 
@@ -244,7 +243,7 @@ impl Compiler {
         };
         chunk.write_constant(idx as u8, 1);
         loop {
-            if scanner.peek().unwrap() == Token::RightParen {
+            if scanner.peek().unwrap().0 == Token::RightParen {
                 break;
             }
             parse(scanner, chunk, self)?;
@@ -258,7 +257,7 @@ impl Compiler {
 pub fn compile(source: &str, chunk: &mut Chunk, compiler: &mut Compiler) -> Result<(), String> {
     let mut scanner = Scanner::new(source);
     parse(&mut scanner, chunk, compiler)?;
-    chunk.write_opcode(OpCode::OpRet, 1);
+    chunk.write_opcode(OpCode::OpRet, scanner.get_line());
 
     Ok(())
 }
@@ -269,14 +268,14 @@ fn parse(scanner: &mut Scanner, chunk: &mut Chunk, compiler: &mut Compiler) -> R
         None => return Ok(()),
     };
 
-    match &token {
+    match &token.0 {
         Token::LeftParen => read_seq(scanner, chunk, compiler)?,
         Token::RightParen => {
             return Err("unexpected ')'".to_string());
         }
         Token::Atom(_) => {
             scanner.scan().unwrap();
-            read_atom(&token, scanner, chunk, compiler)?;
+            read_atom(token, scanner, chunk, compiler)?;
         }
     };
 
@@ -306,26 +305,28 @@ fn binary(
     chunk: &mut Chunk,
     compiler: &mut Compiler,
 ) -> Result<(), String> {
-    parse(scanner, chunk, compiler)?;
-    parse(scanner, chunk, compiler)?;
 
+    let (_, line) = scanner.scan().unwrap();
+    parse(scanner, chunk, compiler)?;
+    parse(scanner, chunk, compiler)?;
+    
     match op {
-        "+" => chunk.write_opcode(OpCode::OpAdd, 1),
-        "-" => chunk.write_opcode(OpCode::OpSub, 1),
-        "*" => chunk.write_opcode(OpCode::OpMul, 1),
-        "/" => chunk.write_opcode(OpCode::OpDiv, 1),
-        "=" => chunk.write_opcode(OpCode::OpEq, 1),
-        "!=" => chunk.write_opcode(OpCode::OpNe, 1),
-        ">" => chunk.write_opcode(OpCode::OpBt, 1),
-        ">=" => chunk.write_opcode(OpCode::OpBe, 1),
-        "<" => chunk.write_opcode(OpCode::OpLt, 1),
-        "<=" => chunk.write_opcode(OpCode::OpLe, 1),
-        "and" => chunk.write_opcode(OpCode::OpAnd, 1),
-        "nand" => chunk.write_opcode(OpCode::OpNand, 1),
-        "or" => chunk.write_opcode(OpCode::OpOr, 1),
-        "nor" => chunk.write_opcode(OpCode::OpNor, 1),
-        "xor" => chunk.write_opcode(OpCode::OpXor, 1),
-        "xnor" => chunk.write_opcode(OpCode::OpXnor, 1),
+        "+" => chunk.write_opcode(OpCode::OpAdd, line),
+        "-" => chunk.write_opcode(OpCode::OpSub, line),
+        "*" => chunk.write_opcode(OpCode::OpMul, line),
+        "/" => chunk.write_opcode(OpCode::OpDiv, line),
+        "=" => chunk.write_opcode(OpCode::OpEq, line),
+        "!=" => chunk.write_opcode(OpCode::OpNe, line),
+        ">" => chunk.write_opcode(OpCode::OpBt, line),
+        ">=" => chunk.write_opcode(OpCode::OpBe, line),
+        "<" => chunk.write_opcode(OpCode::OpLt, line),
+        "<=" => chunk.write_opcode(OpCode::OpLe, line),
+        "and" => chunk.write_opcode(OpCode::OpAnd, line),
+        "nand" => chunk.write_opcode(OpCode::OpNand, line),
+        "or" => chunk.write_opcode(OpCode::OpOr, line),
+        "nor" => chunk.write_opcode(OpCode::OpNor, line),
+        "xor" => chunk.write_opcode(OpCode::OpXor, line),
+        "xnor" => chunk.write_opcode(OpCode::OpXnor, line),
         _ => return Err(format!("Unexpected binary operation: {}", op)),
     };
 
@@ -340,8 +341,8 @@ fn read_seq(
     let _ = scanner.scan();
 
     let op = scanner.peek().unwrap();
-    match op {
-        Token::Atom(_) => read_atom(&op, scanner, chunk, compiler)?,
+    match op.0 {
+        Token::Atom(_) => read_atom(op, scanner, chunk, compiler)?,
         Token::LeftParen => parse(scanner, chunk, compiler)?,
         _ => {
             return Err(format!("unexpected token in sequence: {:?}", op));
@@ -362,10 +363,10 @@ fn unescape_str(s: &str) -> String {
 }
 
 fn read_shallow_list(scanner: &mut Scanner) -> Option<Vec<Token>> {
-    assert!(scanner.scan().unwrap() == Token::LeftParen);
+    assert!(scanner.scan().unwrap().0 == Token::LeftParen);
     let mut v: Vec<Token> = Vec::new();
     loop {
-        let s = scanner.scan().unwrap();
+        let s = scanner.scan().unwrap().0;
         if s == Token::RightParen {
             break;
         }
@@ -377,7 +378,7 @@ fn read_shallow_list(scanner: &mut Scanner) -> Option<Vec<Token>> {
 }
 
 fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object, String> {
-    assert!(scanner.scan().unwrap() == Token::Atom("lambda".to_string()));
+    assert!(scanner.scan().unwrap().0 == Token::Atom("lambda".to_string()));
     let args = read_shallow_list(scanner).unwrap();
     let mut rng = rand::thread_rng();
     let r: u32 = rng.gen();
@@ -407,8 +408,8 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
 }
 
 fn parse_defun(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object, String> {
-    assert!(scanner.scan().unwrap() == Token::Atom("defun".to_string()));
-    let name = scanner.scan().unwrap().atom().unwrap();
+    assert!(scanner.scan().unwrap().0 == Token::Atom("defun".to_string()));
+    let name = scanner.scan().unwrap().0.atom().unwrap();
     let args = read_shallow_list(scanner).unwrap();
 
     let mut compiler = Compiler::new(
@@ -436,7 +437,7 @@ fn parse_defun(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object,
 }
 
 fn read_atom(
-    atom: &Token,
+    atom: (Token, usize),
     scanner: &mut Scanner,
     chunk: &mut Chunk,
     compiler: &mut Compiler,
@@ -446,12 +447,12 @@ fn read_atom(
         static ref STR_RE: Regex = Regex::new(r#""(?:\\.|[^\\"])*""#).unwrap();
     }
 
-    let atom: &str = &atom.atom()?;
+    let (atom, line) = (&atom.0.atom()?, atom.1);
 
     match atom as &str {
-        "nil" => compiler.emit_nil(chunk),
-        "true" => compiler.emit_true(chunk),
-        "false" => compiler.emit_false(chunk),
+        "nil" => compiler.emit_nil(chunk, line),
+        "true" => compiler.emit_true(chunk, line),
+        "false" => compiler.emit_false(chunk, line),
         "+" | "-" | "*" | "/" | "=" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "nand" | "or"
         | "nor" | "xor" | "xnor" => compiler.emit_binary_operation(chunk, atom, scanner),
         "print" => {
@@ -462,7 +463,7 @@ fn read_atom(
         }
         "set!" => {
             scanner.scan().unwrap();
-            let name = scanner.scan().unwrap().atom()?;
+            let name = scanner.scan().unwrap().0.atom()?;
             parse(scanner, chunk, compiler)?;
             if compiler.get_local(&name).is_some() {
                 compiler.emit_set_local(chunk, &name)
@@ -479,9 +480,9 @@ fn read_atom(
         "defun" => compiler.emit_defun(chunk, scanner),
         _ => {
             if INT_RE.is_match(atom) {
-                compiler.emit_integer(chunk, atom)
+                compiler.emit_integer(chunk, atom, line)
             } else if STR_RE.is_match(atom) {
-                compiler.emit_string(chunk, atom)
+                compiler.emit_string(chunk, atom, line)
             } else if scanner.previous() != Some(Token::LeftParen) {
                 if let Some(id) = compiler.get_local(atom) {
                     compiler.emit_get_local(chunk, id)

@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use regex::Regex;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     LeftParen,
     RightParen,
@@ -23,6 +23,7 @@ impl Token {
 pub struct Scanner {
     tokens: Vec<(String, usize)>,
     pos: usize,
+    current_line: usize,
 }
 
 impl Scanner {
@@ -30,26 +31,29 @@ impl Scanner {
         Scanner {
             tokens: tokenize(source),
             pos: 0,
+            current_line: 0,
         }
     }
 
-    pub fn scan(&mut self) -> Option<Token> {
+    pub fn scan(&mut self) -> Option<(Token, usize)> {
         let token = self.peek();
         self.pos += 1;
         token
     }
 
-    pub fn peek(&self) -> Option<Token> {
+    pub fn peek(&mut self) -> Option<(Token, usize)> {
         if self.pos >= self.tokens.len() {
             return None;
         }
 
-        let token: &str = &self.tokens[self.pos].0;
-        Some(match token {
+        let (token, line) = &self.tokens[self.pos];
+        let token = match &token as &str {
             "(" => Token::LeftParen,
             ")" => Token::RightParen,
             _ => Token::Atom(token.to_string()),
-        })
+        };
+        self.current_line = *line;
+        Some((token, *line))
     }
 
     pub fn previous(&self) -> Option<Token> {
@@ -67,6 +71,14 @@ impl Scanner {
             .map(|x| x.0.clone())
             .collect::<Vec<String>>()
     }
+
+    pub fn get_line(&self) -> usize {
+        self.current_line
+    }
+
+    //pub fn next_tokens(&self) -> Vec<String> {
+    //    self.tokens[self.pos..].to_vec()
+    //}
 }
 
 fn tokenize(source: &str) -> Vec<(String, usize)> {
@@ -97,25 +109,25 @@ mod tests {
     #[test]
     fn test_tokenize() {
         let mut scan = Scanner::new("(+ 1 2)");
-        assert_eq!(scan.scan().unwrap().type(), Token::LeftParen);
-        assert_eq!(scan.scan().unwrap().type(), Token::Atom("+".to_string()));
-        assert_eq!(scan.scan().unwrap().type(), Token::Atom("1".to_string()));
-        assert_eq!(scan.scan().unwrap().type(), Token::Atom("2".to_string()));
-        assert_eq!(scan.scan().unwrap().type(), Token::RightParen);
+        assert_eq!(scan.scan().unwrap(), Token::LeftParen);
+        assert_eq!(scan.scan().unwrap(), Token::Atom("+".to_string()));
+        assert_eq!(scan.scan().unwrap(), Token::Atom("1".to_string()));
+        assert_eq!(scan.scan().unwrap(), Token::Atom("2".to_string()));
+        assert_eq!(scan.scan().unwrap(), Token::RightParen);
     }
 
     #[test]
     fn test_tokenize_with_new_lines() {
         let mut scan = Scanner::new("(+ 1 2)\n(* 2 3)");
-        assert_eq!(scan.scan().unwrap().type(), Token::LeftParen);
-        assert_eq!(scan.scan().unwrap().type(), Token::Atom("+".to_string()));
-        assert_eq!(scan.scan().unwrap().type(), Token::Atom("1".to_string()));
-        assert_eq!(scan.scan().unwrap().type(), Token::Atom("2".to_string()));
-        assert_eq!(scan.scan().unwrap().type(), Token::RightParen);
-        assert_eq!(scan.scan().unwrap().type(), Token::LeftParen);
-        assert_eq!(scan.scan().unwrap().type(), Token::Atom("*".to_string()));
-        assert_eq!(scan.scan().unwrap().type(), Token::Atom("2".to_string()));
-        assert_eq!(scan.scan().unwrap().type(), Token::Atom("3".to_string()));
-        assert_eq!(scan.scan().unwrap().type(), Token::RightParen);
+        assert_eq!(scan.scan().unwrap(), Token::LeftParen);
+        assert_eq!(scan.scan().unwrap(), Token::Atom("+".to_string()));
+        assert_eq!(scan.scan().unwrap(), Token::Atom("1".to_string()));
+        assert_eq!(scan.scan().unwrap(), Token::Atom("2".to_string()));
+        assert_eq!(scan.scan().unwrap(), Token::RightParen);
+        assert_eq!(scan.scan().unwrap(), Token::LeftParen);
+        assert_eq!(scan.scan().unwrap(), Token::Atom("*".to_string()));
+        assert_eq!(scan.scan().unwrap(), Token::Atom("2".to_string()));
+        assert_eq!(scan.scan().unwrap(), Token::Atom("3".to_string()));
+        assert_eq!(scan.scan().unwrap(), Token::RightParen);
     }
 }
