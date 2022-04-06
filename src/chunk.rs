@@ -86,7 +86,6 @@ pub struct Chunk {
     code: Vec<Element>,
     pub constants: Vec<Value>,
     lines: Vec<(usize, usize)>,
-    functions: HashMap<String, Closure>,
 }
 
 impl fmt::Display for Chunk {
@@ -120,7 +119,6 @@ impl Chunk {
             code: Vec::new(),
             constants: Vec::new(),
             lines: Vec::new(),
-            functions: HashMap::new(),
         }
     }
 
