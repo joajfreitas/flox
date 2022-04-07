@@ -94,10 +94,17 @@ impl Compiler {
         Ok(())
     }
 
+    fn emit_print(&mut self, chunk: &mut Chunk, atom: (Token, usize), scanner: &mut Scanner) -> Result<(), String>{
+        scanner.scan().unwrap();
+        parse(scanner, chunk, self)?;
+        chunk.write_opcode(OpCode::OpPrint, atom.1);
+        Ok(())
+    }
+
     fn emit_binary_operation(
         &mut self,
         chunk: &mut Chunk,
-        atom: &str,
+        atom: (Token, usize),
         scanner: &mut Scanner,
     ) -> Result<(), String> {
         binary(atom, scanner, chunk, self)?;
@@ -149,7 +156,7 @@ impl Compiler {
     fn emit_not(
         &mut self,
         chunk: &mut Chunk,
-        atom: &str,
+        atom: (Token, usize),
         scanner: &mut Scanner,
     ) -> Result<(), String> {
         scanner.scan().unwrap();
@@ -169,15 +176,15 @@ impl Compiler {
     }
 
     fn emit_defun(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
-        chunk.write_opcode(OpCode::OpConst, 1);
+        chunk.write_opcode(OpCode::OpConst, scanner.get_line());
         let lambda = parse_defun(scanner, self)?;
         let idx = chunk.add_constant(Value::Obj(Box::new(lambda.clone())));
-        chunk.write_constant(idx as u8, 1);
+        chunk.write_constant(idx as u8, scanner.get_line());
         let idx = self.set_local(dbg!(
             lambda.get_function().ok_or("Failed to find function")?.name
         ));
-        chunk.write_opcode(OpCode::OpSetLocal, 0);
-        chunk.write_constant(idx as u8, 0);
+        chunk.write_opcode(OpCode::OpSetLocal, scanner.get_line());
+        chunk.write_constant(idx as u8, scanner.get_line());
 
         println!("defun: {}", chunk);
         println!("function: {}", lambda.get_function().unwrap().chunk);
@@ -186,11 +193,11 @@ impl Compiler {
     }
 
     fn emit_lambda(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
-        chunk.write_opcode(OpCode::OpConst, 1);
+        chunk.write_opcode(OpCode::OpConst, scanner.get_line());
         let lambda = parse_lambda(scanner, self)?;
         let idx = chunk.add_constant(Value::Obj(Box::new(lambda.clone())));
-        chunk.write_constant(idx as u8, 1);
-        chunk.write_opcode(OpCode::OpClosure, 1);
+        chunk.write_constant(idx as u8, scanner.get_line());
+        chunk.write_opcode(OpCode::OpClosure, scanner.get_line());
 
 
         println!("lambda: {}", chunk);
@@ -198,18 +205,19 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_integer(&self, chunk: &mut Chunk, atom: &str, line: usize) -> Result<(), String> {
-        let i: i32 = atom.parse().unwrap();
-        chunk.write_opcode(OpCode::OpConst, line);
+    fn emit_integer(&self, chunk: &mut Chunk, atom: (Token, usize)) -> Result<(), String> {
+        let i: i32 = atom.0.atom()?.parse().unwrap();
+        chunk.write_opcode(OpCode::OpConst, atom.1);
         let constant = chunk.add_constant(Value::Number(i as f64));
-        chunk.write_constant(constant as u8, line);
+        chunk.write_constant(constant as u8, atom.1);
         Ok(())
     }
-    fn emit_string(&self, chunk: &mut Chunk, atom: &str, line: usize) -> Result<(), String> {
-        chunk.write_opcode(OpCode::OpConst, line);
-        let s = Object::Str(unescape_str(&atom[1..atom.len() - 1]));
+    fn emit_string(&self, chunk: &mut Chunk, atom: (Token, usize)) -> Result<(), String> {
+        chunk.write_opcode(OpCode::OpConst, atom.1);
+        let s: &str = &atom.0.atom()?;
+        let s = Object::Str(unescape_str(&s[1..s.len() - 1]));
         let constant = chunk.add_constant(Value::Obj(Box::new(s)));
-        chunk.write_constant(constant as u8, line);
+        chunk.write_constant(constant as u8, atom.1);
         Ok(())
     }
 
@@ -219,26 +227,26 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_get_upvalue(&mut self, chunk: &mut Chunk, atom: &str) -> Result<(), String> {
-        let id = self.get_upvalue(atom).unwrap();
+    fn emit_get_upvalue(&mut self, chunk: &mut Chunk, atom: (Token, usize)) -> Result<(), String> {
+        let id = self.get_upvalue(&atom.0.atom()?).unwrap();
         self.add_upvalue(id, true);
-        chunk.write_opcode(OpCode::OpGetUpvalue, 1);
-        chunk.write_constant(id as u8, 1);
+        chunk.write_opcode(OpCode::OpGetUpvalue, atom.1);
+        chunk.write_constant(id as u8, atom.1);
         Ok(())
     }
 
     fn emit_function_call(
         &mut self,
         chunk: &mut Chunk,
-        atom: &str,
+        atom: (Token, usize),
         scanner: &mut Scanner,
     ) -> Result<(), String> {
         scanner.scan().unwrap();
-        chunk.write_opcode(OpCode::OpGetLocal, 1);
-        let idx = match self.get_local(&dbg!(atom).to_string()) {
+        chunk.write_opcode(OpCode::OpGetLocal, atom.1);
+        let idx = match self.get_local(&dbg!(atom.0.atom()?).to_string()) {
             Some(idx) => idx,
             None => {
-                return Err(format!("Symbol {} is not defined", atom));
+                return Err(format!("Symbol {} is not defined", atom.0.atom()?));
             }
         };
         chunk.write_constant(idx as u8, 1);
@@ -249,7 +257,7 @@ impl Compiler {
             parse(scanner, chunk, self)?;
         }
 
-        chunk.write_opcode(OpCode::OpCall, 1);
+        chunk.write_opcode(OpCode::OpCall, atom.1);
         Ok(())
     }
 }
@@ -283,16 +291,16 @@ fn parse(scanner: &mut Scanner, chunk: &mut Chunk, compiler: &mut Compiler) -> R
 }
 
 fn unary(
-    op: &str,
+    op: (Token, usize),
     scanner: &mut Scanner,
     chunk: &mut Chunk,
     compiler: &mut Compiler,
 ) -> Result<(), String> {
     parse(scanner, chunk, compiler)?;
-    match op {
-        "not" => chunk.write_opcode(OpCode::OpNot, 1),
+    match &op.0.atom()? as &str {
+        "not" => chunk.write_opcode(OpCode::OpNot, op.1),
         _ => {
-            return Err(format!("Unexpected unary operation {}", op));
+            return Err(format!("Unexpected unary operation {}", op.0.atom()?));
         }
     };
 
@@ -300,7 +308,7 @@ fn unary(
 }
 
 fn binary(
-    op: &str,
+    op: (Token, usize),
     scanner: &mut Scanner,
     chunk: &mut Chunk,
     compiler: &mut Compiler,
@@ -310,24 +318,24 @@ fn binary(
     parse(scanner, chunk, compiler)?;
     parse(scanner, chunk, compiler)?;
     
-    match op {
-        "+" => chunk.write_opcode(OpCode::OpAdd, line),
-        "-" => chunk.write_opcode(OpCode::OpSub, line),
-        "*" => chunk.write_opcode(OpCode::OpMul, line),
-        "/" => chunk.write_opcode(OpCode::OpDiv, line),
-        "=" => chunk.write_opcode(OpCode::OpEq, line),
-        "!=" => chunk.write_opcode(OpCode::OpNe, line),
-        ">" => chunk.write_opcode(OpCode::OpBt, line),
-        ">=" => chunk.write_opcode(OpCode::OpBe, line),
-        "<" => chunk.write_opcode(OpCode::OpLt, line),
-        "<=" => chunk.write_opcode(OpCode::OpLe, line),
-        "and" => chunk.write_opcode(OpCode::OpAnd, line),
-        "nand" => chunk.write_opcode(OpCode::OpNand, line),
-        "or" => chunk.write_opcode(OpCode::OpOr, line),
-        "nor" => chunk.write_opcode(OpCode::OpNor, line),
-        "xor" => chunk.write_opcode(OpCode::OpXor, line),
-        "xnor" => chunk.write_opcode(OpCode::OpXnor, line),
-        _ => return Err(format!("Unexpected binary operation: {}", op)),
+    match &op.0.atom()? as &str{
+        "+" => chunk.write_opcode(OpCode::OpAdd, op.1),
+        "-" => chunk.write_opcode(OpCode::OpSub, op.1),
+        "*" => chunk.write_opcode(OpCode::OpMul, op.1),
+        "/" => chunk.write_opcode(OpCode::OpDiv, op.1),
+        "=" => chunk.write_opcode(OpCode::OpEq, op.1),
+        "!=" => chunk.write_opcode(OpCode::OpNe, op.1),
+        ">" => chunk.write_opcode(OpCode::OpBt, op.1),
+        ">=" => chunk.write_opcode(OpCode::OpBe, op.1),
+        "<" => chunk.write_opcode(OpCode::OpLt, op.1),
+        "<=" => chunk.write_opcode(OpCode::OpLe, op.1),
+        "and" => chunk.write_opcode(OpCode::OpAnd, op.1),
+        "nand" => chunk.write_opcode(OpCode::OpNand, op.1),
+        "or" => chunk.write_opcode(OpCode::OpOr, op.1),
+        "nor" => chunk.write_opcode(OpCode::OpNor, op.1),
+        "xor" => chunk.write_opcode(OpCode::OpXor, op.1),
+        "xnor" => chunk.write_opcode(OpCode::OpXnor, op.1),
+        _ => return Err(format!("Unexpected binary operation: {}", op.0.atom()?)),
     };
 
     Ok(())
@@ -447,20 +455,13 @@ fn read_atom(
         static ref STR_RE: Regex = Regex::new(r#""(?:\\.|[^\\"])*""#).unwrap();
     }
 
-    let (atom, line) = (&atom.0.atom()?, atom.1);
-
-    match atom as &str {
-        "nil" => compiler.emit_nil(chunk, line),
-        "true" => compiler.emit_true(chunk, line),
-        "false" => compiler.emit_false(chunk, line),
+    match &atom.0.atom()? as &str {
+        "nil" => compiler.emit_nil(chunk, atom.1),
+        "true" => compiler.emit_true(chunk, atom.1),
+        "false" => compiler.emit_false(chunk, atom.1),
         "+" | "-" | "*" | "/" | "=" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "nand" | "or"
         | "nor" | "xor" | "xnor" => compiler.emit_binary_operation(chunk, atom, scanner),
-        "print" => {
-            scanner.scan().unwrap();
-            parse(scanner, chunk, compiler)?;
-            chunk.write_opcode(OpCode::OpPrint, 1);
-            Ok(())
-        }
+        "print" => compiler.emit_print(chunk, atom, scanner),
         "set!" => {
             scanner.scan().unwrap();
             let name = scanner.scan().unwrap().0.atom()?;
@@ -479,12 +480,12 @@ fn read_atom(
         "lambda" => compiler.emit_lambda(chunk, scanner),
         "defun" => compiler.emit_defun(chunk, scanner),
         _ => {
-            if INT_RE.is_match(atom) {
-                compiler.emit_integer(chunk, atom, line)
-            } else if STR_RE.is_match(atom) {
-                compiler.emit_string(chunk, atom, line)
+            if INT_RE.is_match(&atom.0.atom()?) {
+                compiler.emit_integer(chunk, atom)
+            } else if STR_RE.is_match(&atom.0.atom()?) {
+                compiler.emit_string(chunk, atom)
             } else if scanner.previous() != Some(Token::LeftParen) {
-                if let Some(id) = compiler.get_local(atom) {
+                if let Some(id) = compiler.get_local(&atom.0.atom()?) {
                     compiler.emit_get_local(chunk, id)
                 } else {
                     compiler.emit_get_upvalue(chunk, atom)
