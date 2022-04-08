@@ -1,13 +1,11 @@
-use std::env;
 use std::fs;
-use std::io;
 
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 use clap::Parser;
 
-use flox::chunk::{Chunk, OpCode, Value};
+use flox::chunk::Chunk;
 use flox::compiler::{compile, Compiler, Ctx};
 use flox::vm::{VMErr, VirtualMachine};
 
@@ -21,8 +19,8 @@ struct Args {
 
 fn repl(debug: bool) {
     let mut rl = Editor::<()>::new();
-    rl.load_history(".flang-history");
-    let mut prompt: String = "user> ".to_string();
+    rl.load_history(".flang-history").unwrap();
+    let prompt: String = "user> ".to_string();
     let mut vm = VirtualMachine::new(debug);
     let mut comp = Compiler::new(None, Ctx::TopLevel);
     let mut chunk = Chunk::new("test chunk");
@@ -69,10 +67,10 @@ fn run_file(filename: String, debug: bool) {
 
     let mut chunk = Chunk::new("test chunk");
     let mut comp = Compiler::new(None, Ctx::TopLevel);
-    compile(&source, &mut chunk, &mut comp);
+    compile(&source, &mut chunk, &mut comp).unwrap();
     println!("{}", chunk);
     let mut vm = VirtualMachine::new(debug);
-    vm.run(&mut chunk);
+    vm.run(&mut chunk).unwrap();
 }
 
 fn main() {
