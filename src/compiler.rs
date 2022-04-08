@@ -526,19 +526,19 @@ mod tests {
 
     #[rstest]
     fn test_emit_nil(compiler: Compiler, mut chunk: Chunk) {
-        compiler.emit_nil(&mut chunk).unwrap();
+        compiler.emit_nil(&mut chunk, 1).unwrap();
         assert_eq!(chunk.get_code(), vec![op!(OpCode::OpNil)]);
     }
 
     #[rstest]
     fn test_emit_true(compiler: Compiler, mut chunk: Chunk) {
-        compiler.emit_true(&mut chunk).unwrap();
+        compiler.emit_true(&mut chunk, 1).unwrap();
         assert_eq!(chunk.get_code(), vec![op!(OpCode::OpTrue)]);
     }
 
     #[rstest]
     fn test_emit_false(compiler: Compiler, mut chunk: Chunk) {
-        compiler.emit_false(&mut chunk).unwrap();
+        compiler.emit_false(&mut chunk, 1).unwrap();
         assert_eq!(chunk.get_code(), vec![op!(OpCode::OpFalse)]);
     }
 

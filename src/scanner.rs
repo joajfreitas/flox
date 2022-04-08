@@ -106,25 +106,25 @@ mod tests {
     #[test]
     fn test_tokenize() {
         let mut scan = Scanner::new("(+ 1 2)");
-        assert_eq!(scan.scan().unwrap(), Token::LeftParen);
-        assert_eq!(scan.scan().unwrap(), Token::Atom("+".to_string()));
-        assert_eq!(scan.scan().unwrap(), Token::Atom("1".to_string()));
-        assert_eq!(scan.scan().unwrap(), Token::Atom("2".to_string()));
-        assert_eq!(scan.scan().unwrap(), Token::RightParen);
+        assert_eq!(scan.scan().unwrap().0, Token::LeftParen);
+        assert_eq!(scan.scan().unwrap().0, Token::Atom("+".to_string()));
+        assert_eq!(scan.scan().unwrap().0, Token::Atom("1".to_string()));
+        assert_eq!(scan.scan().unwrap().0, Token::Atom("2".to_string()));
+        assert_eq!(scan.scan().unwrap().0, Token::RightParen);
     }
 
     #[test]
     fn test_tokenize_with_new_lines() {
         let mut scan = Scanner::new("(+ 1 2)\n(* 2 3)");
-        assert_eq!(scan.scan().unwrap(), Token::LeftParen);
-        assert_eq!(scan.scan().unwrap(), Token::Atom("+".to_string()));
-        assert_eq!(scan.scan().unwrap(), Token::Atom("1".to_string()));
-        assert_eq!(scan.scan().unwrap(), Token::Atom("2".to_string()));
-        assert_eq!(scan.scan().unwrap(), Token::RightParen);
-        assert_eq!(scan.scan().unwrap(), Token::LeftParen);
-        assert_eq!(scan.scan().unwrap(), Token::Atom("*".to_string()));
-        assert_eq!(scan.scan().unwrap(), Token::Atom("2".to_string()));
-        assert_eq!(scan.scan().unwrap(), Token::Atom("3".to_string()));
-        assert_eq!(scan.scan().unwrap(), Token::RightParen);
+        assert_eq!(scan.scan().unwrap().0, Token::LeftParen);
+        assert_eq!(scan.scan().unwrap().0, Token::Atom("+".to_string()));
+        assert_eq!(scan.scan().unwrap().0, Token::Atom("1".to_string()));
+        assert_eq!(scan.scan().unwrap().0, Token::Atom("2".to_string()));
+        assert_eq!(scan.scan().unwrap().0, Token::RightParen);
+        assert_eq!(scan.scan().unwrap().0, Token::LeftParen);
+        assert_eq!(scan.scan().unwrap().0, Token::Atom("*".to_string()));
+        assert_eq!(scan.scan().unwrap().0, Token::Atom("2".to_string()));
+        assert_eq!(scan.scan().unwrap().0, Token::Atom("3".to_string()));
+        assert_eq!(scan.scan().unwrap().0, Token::RightParen);
     }
 }

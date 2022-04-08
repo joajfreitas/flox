@@ -91,9 +91,6 @@ pub struct Chunk {
 
 impl fmt::Display for Chunk {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "{:?}", self.lines)?;
-        //writeln!(f, "{:?}", self.constants)?;
-        //writeln!(f, "{:?}", self.code)?;
         writeln!(f, "==={}===", &self.name)?;
         let mut pc: usize = 0;
         loop {
@@ -290,6 +287,7 @@ impl Chunk {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::chunk::closure::Closure;
 
     fn fixture_closure() -> Closure {
         Closure {
