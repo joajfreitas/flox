@@ -6,7 +6,6 @@ use std::fmt::Write as _;
 pub mod closure;
 pub mod object;
 pub mod value;
-use closure::Closure;
 pub use value::Value;
 
 #[macro_export]
@@ -92,7 +91,7 @@ pub struct Chunk {
 
 impl fmt::Display for Chunk {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "{:?}", self.lines);
+        writeln!(f, "{:?}", self.lines)?;
         //writeln!(f, "{:?}", self.constants)?;
         //writeln!(f, "{:?}", self.code)?;
         writeln!(f, "==={}===", &self.name)?;

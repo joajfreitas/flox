@@ -5,7 +5,7 @@ use rustyline::Editor;
 
 use clap::Parser;
 
-use flox::chunk::{Chunk, OpCode, Value};
+use flox::chunk::Chunk;
 use flox::compiler::{compile, Compiler, Ctx};
 use flox::vm::{VMErr, VirtualMachine};
 

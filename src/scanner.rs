@@ -1,6 +1,3 @@
-use lazy_static::lazy_static;
-use regex::Regex;
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     LeftParen,
@@ -47,7 +44,7 @@ impl Scanner {
         }
 
         let (token, line) = &self.tokens[self.pos];
-        let token = match &token as &str {
+        let token = match token as &str {
             "(" => Token::LeftParen,
             ")" => Token::RightParen,
             _ => Token::Atom(token.to_string()),

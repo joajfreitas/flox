@@ -94,7 +94,12 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_print(&mut self, chunk: &mut Chunk, atom: (Token, usize), scanner: &mut Scanner) -> Result<(), String>{
+    fn emit_print(
+        &mut self,
+        chunk: &mut Chunk,
+        atom: (Token, usize),
+        scanner: &mut Scanner,
+    ) -> Result<(), String> {
         scanner.scan().unwrap();
         parse(scanner, chunk, self)?;
         chunk.write_opcode(OpCode::OpPrint, atom.1);
@@ -199,7 +204,6 @@ impl Compiler {
         chunk.write_constant(idx as u8, scanner.get_line());
         chunk.write_opcode(OpCode::OpClosure, scanner.get_line());
 
-
         println!("lambda: {}", chunk);
         println!("function: {}", lambda.get_function().unwrap().chunk);
         Ok(())
@@ -243,7 +247,7 @@ impl Compiler {
     ) -> Result<(), String> {
         scanner.scan().unwrap();
         chunk.write_opcode(OpCode::OpGetLocal, atom.1);
-        let idx = match self.get_local(&dbg!(atom.0.atom()?).to_string()) {
+        let idx = match self.get_local(&atom.0.atom()?) {
             Some(idx) => idx,
             None => {
                 return Err(format!("Symbol {} is not defined", atom.0.atom()?));
@@ -313,12 +317,11 @@ fn binary(
     chunk: &mut Chunk,
     compiler: &mut Compiler,
 ) -> Result<(), String> {
+    scanner.scan().unwrap();
+    parse(scanner, chunk, compiler)?;
+    parse(scanner, chunk, compiler)?;
 
-    let (_, line) = scanner.scan().unwrap();
-    parse(scanner, chunk, compiler)?;
-    parse(scanner, chunk, compiler)?;
-    
-    match &op.0.atom()? as &str{
+    match &op.0.atom()? as &str {
         "+" => chunk.write_opcode(OpCode::OpAdd, op.1),
         "-" => chunk.write_opcode(OpCode::OpSub, op.1),
         "*" => chunk.write_opcode(OpCode::OpMul, op.1),
@@ -406,7 +409,6 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
         name,
     };
 
-
     for arg in args {
         compiler.set_local(arg.atom()?);
     }
@@ -431,9 +433,8 @@ fn parse_defun(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object,
             .map(|x| x.atom().unwrap())
             .collect::<Vec<String>>(),
         chunk: Chunk::new(&name),
-        name: name.clone()
+        name: name.clone(),
     };
-
 
     for arg in args {
         compiler.set_local(arg.atom()?);
