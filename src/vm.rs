@@ -1,4 +1,6 @@
-use crate::chunk::{Chunk, Closure, OpCode, Value};
+use crate::chunk::closure::Closure;
+use crate::chunk::value::Value;
+use crate::chunk::{Chunk, OpCode};
 
 struct CallFrame {
     function: Box<Closure>,
@@ -99,7 +101,7 @@ impl VirtualMachine {
             }
             let opcode = chunk.get_opcode(ip).unwrap();
             match opcode {
-                OpCode::OpReturn => {
+                OpCode::OpRet => {
                     if self.frames.len() == 1 {
                         self.ip = self.get_ip() + 1;
                         match self.stack.last() {
@@ -118,12 +120,12 @@ impl VirtualMachine {
                         self.set_ip(self.get_ip() + 1);
                     }
                 }
-                OpCode::OpConstant => {
+                OpCode::OpConst => {
                     let (_, value) = chunk.get_constant(ip + 1);
                     self.stack.push(value.clone());
                     self.set_ip(ip + 2);
                 }
-                OpCode::OpConstantLong => {
+                OpCode::OpConstLong => {
                     let value = chunk.get_constant_long(ip + 1).unwrap();
                     self.stack.push(value.clone());
                     self.set_ip(ip + 4);
@@ -132,9 +134,9 @@ impl VirtualMachine {
                 OpCode::OpTrue => nullary!(|| { Value::Bool(true) }, self, ip),
                 OpCode::OpFalse => nullary!(|| { Value::Bool(false) }, self, ip),
                 OpCode::OpAdd => binary!(|x, y| { x + y }, self, ip),
-                OpCode::OpSubtract => binary!(|x, y| { x - y }, self, ip),
-                OpCode::OpMultiply => binary!(|x, y| { x * y }, self, ip),
-                OpCode::OpDivide => binary!(|x, y| { x / y }, self, ip),
+                OpCode::OpSub => binary!(|x, y| { x - y }, self, ip),
+                OpCode::OpMul => binary!(|x, y| { x * y }, self, ip),
+                OpCode::OpDiv => binary!(|x, y| { x / y }, self, ip),
                 OpCode::OpNot => unary!(|x: Value| { !x }, self, ip),
                 OpCode::OpEq => binary!(|x, y| { Value::Bool(x == y) }, self, ip),
                 OpCode::OpNe => binary!(|x, y| { Value::Bool(x != y) }, self, ip),
@@ -156,14 +158,21 @@ impl VirtualMachine {
                 }
                 OpCode::OpGetLocal => {
                     let slot = chunk.get_constant_index(ip + 1);
-                    let fp = self.frames.last().unwrap().stackpointer;
-                    self.stack.push(self.stack[slot as usize + fp].clone());
+                    let fp = dbg!(self.frames.last().unwrap().stackpointer);
+                    let id = slot as usize + fp;
+                    if id >= self.stack.len() {
+                        return Err(VMErr::RuntimeError(String::from("Out of bound access")));
+                    }
+                    self.stack.push(self.stack[id].clone());
                     self.set_ip(ip + 2);
                 }
                 OpCode::OpJmpIfFalse => {
                     let idx = chunk.get_constant_index(ip + 1);
                     let pred = self.stack.pop().unwrap();
-                    if !pred.get_bool() {
+                    if !pred
+                        .get_bool()
+                        .ok_or_else(|| VMErr::RuntimeError("Failed to get boolean".to_string()))?
+                    {
                         self.set_ip(idx as usize);
                     } else {
                         self.set_ip(ip + 2);
@@ -174,11 +183,14 @@ impl VirtualMachine {
                     self.set_ip(idx as usize);
                 }
                 OpCode::OpCall => {
+                    println!("function call");
                     let mut args: Vec<Value> = Vec::new();
                     loop {
-                        let v = self.stack.pop().unwrap();
+                        let v = dbg!(self.stack.pop().unwrap());
                         if v.is_function() {
-                            let f = v.get_function();
+                            let f = v.get_function().ok_or_else(|| {
+                                VMErr::RuntimeError("Failed to find function".to_string())
+                            })?;
 
                             let frame = CallFrame {
                                 function: f,
@@ -197,6 +209,23 @@ impl VirtualMachine {
                         self.stack.push(arg.clone());
                     }
                 }
+                OpCode::OpGetUpvalue => {
+                    unimplemented!();
+                }
+                OpCode::OpSetUpvalue => {
+                    unimplemented!();
+                }
+                OpCode::OpClosure => {
+                    unimplemented!();
+                }
+                OpCode::OpPrint => unary!(
+                    |x| {
+                        println!("{:?}", x);
+                        x
+                    },
+                    self,
+                    ip
+                ),
             }
         }
     }
@@ -223,7 +252,7 @@ mod tests {
     fn test_basic() {
         let mut vm = VirtualMachine::new(false);
         let mut chunk = Chunk::new("test");
-        chunk.write_opcode(OpCode::OpReturn, 1);
+        chunk.write_opcode(OpCode::OpRet, 1);
         vm.run(&mut chunk);
     }
 }

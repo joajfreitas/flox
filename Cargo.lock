@@ -54,9 +54,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "clap"
-version = "3.0.5"
+version = "3.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6f34b09b9ee8c7c7b400fe2f8df39cafc9538b03d6ba7f4ae13e4cb90bfbb7d"
+checksum = "12e8611f9ae4e068fa3e56931fded356ff745e70987ff76924a6e0ab1c8ef2e3"
 dependencies = [
  "atty",
  "bitflags",
@@ -71,9 +71,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "3.0.5"
+version = "3.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41a0645a430ec9136d2d701e54a95d557de12649a9dd7109ced3187e648ac824"
+checksum = "517358c28fcef6607bf6f76108e02afad7e82297d132a6b846dcc1fc3efcd153"
 dependencies = [
  "heck",
  "proc-macro-error",
@@ -123,6 +123,7 @@ dependencies = [
  "lazy_static",
  "rand",
  "regex",
+ "rstest",
  "rustyline",
  "serde",
  "serde_json",
@@ -130,9 +131,9 @@ dependencies = [
 
 [[package]]
 name = "getrandom"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fcd999463524c52659517fe2cea98493cfe485d10565e7b0fb07dbba7ad2753"
+checksum = "418d37c8b1d42553c93648be529cb70f920d3baf8ef469b74b9638df426e0b4c"
 dependencies = [
  "cfg-if 1.0.0",
  "libc",
@@ -350,6 +351,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
 
 [[package]]
+name = "rstest"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d912f35156a3f99a66ee3e11ac2e0b3f34ac85a07e05263d05a7e2c8810d616f"
+dependencies = [
+ "cfg-if 1.0.0",
+ "proc-macro2",
+ "quote",
+ "rustc_version",
+ "syn",
+]
+
+[[package]]
+name = "rustc_version"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
+dependencies = [
+ "semver",
+]
+
+[[package]]
 name = "rustyline"
 version = "5.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -374,6 +397,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73b4b750c782965c211b42f022f59af1fbceabdd026623714f104152f1ec149f"
 
 [[package]]
+name = "semver"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4a3381e03edd24287172047536f20cabde766e2cd3e65e6b00fb3af51c4f38d"
+
+[[package]]
 name = "serde"
 version = "1.0.133"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -395,9 +424,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.74"
+version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee2bb9cd061c5865d345bb02ca49fcef1391741b672b54a0bf7b679badec3142"
+checksum = "c059c05b48c5c0067d4b4b2b4f0732dd65feb52daf7e0ea09cd87e7dadc1af79"
 dependencies = [
  "itoa",
  "ryu",

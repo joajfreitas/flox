@@ -1,0 +1,1 @@
+(do (set! fib (x) (if (= x 1) 0 (if (= x 2) 1 (+ (fib (- x 1))  (fib (- x 2)))))) (apply f 5))

@@ -54,7 +54,7 @@ jobs:
       steps:
         - uses: actions/checkout@v2
         - name: Run rustfmt
-          run: rustfmt --check src/* examples/*
+          run: cargo fmt
 
   code-coverage:
       runs-on: ubuntu-latest
