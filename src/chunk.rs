@@ -265,8 +265,8 @@ impl Chunk {
                 (format!("{:?} '{}'\n", opcode, value), 4)
             }
             OpCode::OpSetLocal | OpCode::OpSetUpvalue => {
-                let (n, c) = self.get_constant(index + 1);
-                (format!("{:?} {}: '{}\n", opcode, n, c), 2)
+                let n = self.get_constant_index(index + 1);
+                (format!("{:?} {}\n", opcode, n), 2)
             }
             OpCode::OpGetLocal | OpCode::OpGetUpvalue => {
                 let n = self.get_constant_index(index + 1);
@@ -276,6 +276,10 @@ impl Chunk {
                 let idx = self.get_constant_index(index + 1);
                 (format!("{:?}: {}\n", opcode, idx), 2)
             }
+            OpCode::OpClosure => {
+                let (n, c) = self.get_constant(index + 1);
+                (format!("{:?} {}:'{}\n", opcode, n, c), 2)
+            },
             _ => (format!("{:?}\n", opcode), 1),
         };
 

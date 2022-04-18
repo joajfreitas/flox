@@ -8,7 +8,7 @@ use crate::chunk::value::Value;
 use crate::chunk::{Chunk, OpCode};
 use crate::scanner::{Scanner, Token};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UpValue {
     is_local: bool,
     index: usize,
@@ -45,6 +45,7 @@ impl Compiler {
     }
 
     fn set_local(&mut self, name: String) -> usize {
+        dbg!(&self.locals);
         self.locals.push(name);
         self.locals.len() - 1
     }
@@ -116,13 +117,13 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_set_local(&mut self, chunk: &mut Chunk, name: &str) -> Result<(), String> {
+    fn emit_set_local(&mut self, chunk: &mut Chunk, name: &(Token, usize)) -> Result<(), String> {
         //scanner.scan().unwrap(); //function name?
         //let var_name = scanner.scan().unwrap().atom()?; //first arg
         //parse(scanner, chunk, self)?;
-        let idx = self.set_local(name.to_string());
-        chunk.write_opcode(OpCode::OpSetLocal, 0);
-        chunk.write_constant(idx as u8, 0);
+        let idx = dbg!(self.set_local(name.0.atom()?));
+        chunk.write_opcode(OpCode::OpSetLocal, name.1);
+        chunk.write_constant(idx as u8, name.1);
         Ok(())
     }
 
@@ -198,11 +199,15 @@ impl Compiler {
     }
 
     fn emit_lambda(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
-        chunk.write_opcode(OpCode::OpConst, scanner.get_line());
+        chunk.write_opcode(OpCode::OpClosure, scanner.get_line());
         let lambda = parse_lambda(scanner, self)?;
         let idx = chunk.add_constant(Value::Obj(Box::new(lambda.clone())));
         chunk.write_constant(idx as u8, scanner.get_line());
-        chunk.write_opcode(OpCode::OpClosure, scanner.get_line());
+
+        for upvalue in self.upvals.iter() {
+            chunk.write_constant(upvalue.is_local as u8, scanner.get_line());
+            chunk.write_constant(upvalue.index as u8, scanner.get_line());
+        }
 
         println!("lambda: {}", chunk);
         println!("function: {}", lambda.get_function().unwrap().chunk);
@@ -465,12 +470,12 @@ fn read_atom(
         "print" => compiler.emit_print(chunk, atom, scanner),
         "set!" => {
             scanner.scan().unwrap();
-            let name = scanner.scan().unwrap().0.atom()?;
+            let name = scanner.scan().unwrap();
             parse(scanner, chunk, compiler)?;
-            if compiler.get_local(&name).is_some() {
+            if compiler.get_local(&name.0.atom()?).is_some() {
                 compiler.emit_set_local(chunk, &name)
-            } else if compiler.get_upvalue(&name).is_some() {
-                compiler.emit_set_upvalue(chunk, &name)
+            } else if compiler.get_upvalue(&name.0.atom()?).is_some() {
+                compiler.emit_set_upvalue(chunk, &name.0.atom()?)
             } else {
                 compiler.emit_set_local(chunk, &name)
             }
