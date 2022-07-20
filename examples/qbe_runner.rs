@@ -8,7 +8,8 @@ use rustyline::Editor;
 use clap::Parser;
 
 use flox::chunk::{Chunk, OpCode, Value};
-use flox::compiler::{compile, Ctx, FloxCompiler};
+use flox::compiler::Ctx;
+use flox::qbe_compiler::QbeCompiler;
 use flox::vm::{VMErr, VirtualMachine};
 
 #[derive(Parser, Debug)]
@@ -24,7 +25,7 @@ fn repl(debug: bool) {
     rl.load_history(".flang-history");
     let mut prompt: String = "user> ".to_string();
     let mut vm = VirtualMachine::new(debug);
-    let mut comp = FloxCompiler::new(None, Ctx::TopLevel);
+    let mut comp = QbeCompiler::new(None, Ctx::TopLevel);
     let mut chunk = Chunk::new("test chunk");
 
     loop {
@@ -35,7 +36,7 @@ fn repl(debug: bool) {
                 rl.add_history_entry(line.as_str());
                 rl.save_history(".flang-history").unwrap();
 
-                match compile(&line, &mut chunk, &mut comp) {
+                match comp.compile(&line, &mut chunk) {
                     Err(err) => {
                         println!("{}", err);
                         continue;
@@ -68,11 +69,11 @@ fn run_file(filename: String, debug: bool) {
     let source = fs::read_to_string(filename).unwrap();
 
     let mut chunk = Chunk::new("test chunk");
-    let mut comp = FloxCompiler::new(None, Ctx::TopLevel);
-    compile(&source, &mut chunk, &mut comp);
+    let mut comp = QbeCompiler::new(None, Ctx::TopLevel);
+    comp.compile(&source, &mut chunk);
     println!("{}", chunk);
-    let mut vm = VirtualMachine::new(debug);
-    vm.run(&mut chunk);
+    //let mut vm = VirtualMachine::new(debug);
+    //vm.run(&mut chunk);
 }
 
 fn main() {

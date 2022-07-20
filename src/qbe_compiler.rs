@@ -1,51 +1,34 @@
-use lazy_static::lazy_static;
-use rand::Rng;
-use regex::{Captures, Regex};
-
 use crate::chunk::closure::Closure;
 use crate::chunk::object::Object;
 use crate::chunk::value::Value;
 use crate::chunk::{Chunk, OpCode};
+use crate::compiler::{read_shallow_list, unescape_str, Ctx, UpValue};
 use crate::scanner::{Scanner, Token};
+use lazy_static::lazy_static;
+use rand::Rng;
 
-pub trait Compiler {
-    fn compile(scanner: &Scanner) -> Chunk;
-}
-
-#[derive(Clone)]
-pub struct UpValue {
-    pub is_local: bool,
-    pub index: usize,
-}
-
-impl UpValue {
-    pub fn new(is_local: bool, index: usize) -> UpValue {
-        UpValue { is_local, index }
-    }
-}
+use regex::{Captures, Regex};
 
 #[derive(Clone)]
-pub enum Ctx {
-    TopLevel,
-    FunctionScope(String),
-}
-
-#[derive(Clone)]
-pub struct FloxCompiler {
+pub struct QbeCompiler {
     context: Ctx,
     locals: Vec<String>,
-    up: Option<Box<FloxCompiler>>,
+    up: Option<Box<QbeCompiler>>,
     upvals: Vec<UpValue>,
 }
 
-impl FloxCompiler {
-    pub fn new(up: Option<Box<FloxCompiler>>, context: Ctx) -> FloxCompiler {
-        FloxCompiler {
+impl QbeCompiler {
+    pub fn new(up: Option<Box<QbeCompiler>>, context: Ctx) -> QbeCompiler {
+        QbeCompiler {
             context,
             locals: Vec::new(),
             up,
             upvals: Vec::new(),
         }
+    }
+
+    pub fn compile(&mut self, source: &String, chunk: &Chunk) -> Result<(), String> {
+        Ok(())
     }
 
     fn set_local(&mut self, name: String) -> usize {
@@ -257,18 +240,10 @@ impl FloxCompiler {
     }
 }
 
-pub fn compile(source: &str, chunk: &mut Chunk, compiler: &mut FloxCompiler) -> Result<(), String> {
-    let mut scanner = Scanner::new(source);
-    parse(&mut scanner, chunk, compiler)?;
-    chunk.write_opcode(OpCode::OpRet, scanner.get_line());
-
-    Ok(())
-}
-
 fn parse(
     scanner: &mut Scanner,
     chunk: &mut Chunk,
-    compiler: &mut FloxCompiler,
+    compiler: &mut QbeCompiler,
 ) -> Result<(), String> {
     let token = match scanner.peek() {
         Some(x) => x,
@@ -289,108 +264,14 @@ fn parse(
     Ok(())
 }
 
-pub fn unary(
-    op: &str,
-    scanner: &mut Scanner,
-    chunk: &mut Chunk,
-    compiler: &mut FloxCompiler,
-) -> Result<(), String> {
-    parse(scanner, chunk, compiler)?;
-    match op {
-        "not" => chunk.write_opcode(OpCode::OpNot, 1),
-        _ => {
-            return Err(format!("Unexpected unary operation {}", op));
-        }
-    };
-
-    Ok(())
-}
-
-fn binary(
-    op: &str,
-    scanner: &mut Scanner,
-    chunk: &mut Chunk,
-    compiler: &mut FloxCompiler,
-) -> Result<(), String> {
-    let (_, line) = scanner.scan().unwrap();
-    parse(scanner, chunk, compiler)?;
-    parse(scanner, chunk, compiler)?;
-
-    match op {
-        "+" => chunk.write_opcode(OpCode::OpAdd, line),
-        "-" => chunk.write_opcode(OpCode::OpSub, line),
-        "*" => chunk.write_opcode(OpCode::OpMul, line),
-        "/" => chunk.write_opcode(OpCode::OpDiv, line),
-        "=" => chunk.write_opcode(OpCode::OpEq, line),
-        "!=" => chunk.write_opcode(OpCode::OpNe, line),
-        ">" => chunk.write_opcode(OpCode::OpBt, line),
-        ">=" => chunk.write_opcode(OpCode::OpBe, line),
-        "<" => chunk.write_opcode(OpCode::OpLt, line),
-        "<=" => chunk.write_opcode(OpCode::OpLe, line),
-        "and" => chunk.write_opcode(OpCode::OpAnd, line),
-        "nand" => chunk.write_opcode(OpCode::OpNand, line),
-        "or" => chunk.write_opcode(OpCode::OpOr, line),
-        "nor" => chunk.write_opcode(OpCode::OpNor, line),
-        "xor" => chunk.write_opcode(OpCode::OpXor, line),
-        "xnor" => chunk.write_opcode(OpCode::OpXnor, line),
-        _ => return Err(format!("Unexpected binary operation: {}", op)),
-    };
-
-    Ok(())
-}
-
-fn read_seq(
-    scanner: &mut Scanner,
-    chunk: &mut Chunk,
-    compiler: &mut FloxCompiler,
-) -> Result<(), String> {
-    let _ = scanner.scan();
-
-    let op = scanner.peek().unwrap();
-    match op.0 {
-        Token::Atom(_) => read_atom(op, scanner, chunk, compiler)?,
-        Token::LeftParen => parse(scanner, chunk, compiler)?,
-        _ => {
-            return Err(format!("unexpected token in sequence: {:?}", op));
-        }
-    };
-
-    scanner.scan().unwrap();
-
-    Ok(())
-}
-
-pub fn unescape_str(s: &str) -> String {
-    let re: Regex = Regex::new(r#"\\(.)"#).unwrap();
-    re.replace_all(s, |caps: &Captures| {
-        (if &caps[1] == "n" { "\n" } else { &caps[1] }).to_string()
-    })
-    .to_string()
-}
-
-pub fn read_shallow_list(scanner: &mut Scanner) -> Option<Vec<Token>> {
-    assert!(scanner.scan().unwrap().0 == Token::LeftParen);
-    let mut v: Vec<Token> = Vec::new();
-    loop {
-        let s = scanner.scan().unwrap().0;
-        if s == Token::RightParen {
-            break;
-        }
-
-        v.push(s);
-    }
-
-    Some(v)
-}
-
-fn parse_lambda(scanner: &mut Scanner, compiler: &mut FloxCompiler) -> Result<Object, String> {
+fn parse_lambda(scanner: &mut Scanner, compiler: &mut QbeCompiler) -> Result<Object, String> {
     assert!(scanner.scan().unwrap().0 == Token::Atom("lambda".to_string()));
     let args = read_shallow_list(scanner).unwrap();
     let mut rng = rand::thread_rng();
     let r: u32 = rng.gen();
     let name = format!("f{}", r);
 
-    let mut compiler = FloxCompiler::new(
+    let mut compiler = QbeCompiler::new(
         Some(Box::new((*compiler).clone())),
         Ctx::FunctionScope(String::from("lambda")),
     );
@@ -412,12 +293,12 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut FloxCompiler) -> Result<Ob
     Ok(Object::Function(Box::new(closure)))
 }
 
-fn parse_defun(scanner: &mut Scanner, compiler: &mut FloxCompiler) -> Result<Object, String> {
+fn parse_defun(scanner: &mut Scanner, compiler: &mut QbeCompiler) -> Result<Object, String> {
     assert!(scanner.scan().unwrap().0 == Token::Atom("defun".to_string()));
     let name = scanner.scan().unwrap().0.atom().unwrap();
     let args = read_shallow_list(scanner).unwrap();
 
-    let mut compiler = FloxCompiler::new(
+    let mut compiler = QbeCompiler::new(
         Some(Box::new((*compiler).clone())),
         Ctx::FunctionScope(name.clone()),
     );
@@ -440,11 +321,32 @@ fn parse_defun(scanner: &mut Scanner, compiler: &mut FloxCompiler) -> Result<Obj
     Ok(Object::Function(Box::new(closure)))
 }
 
+fn read_seq(
+    scanner: &mut Scanner,
+    chunk: &mut Chunk,
+    compiler: &mut QbeCompiler,
+) -> Result<(), String> {
+    let _ = scanner.scan();
+
+    let op = scanner.peek().unwrap();
+    match op.0 {
+        Token::Atom(_) => read_atom(op, scanner, chunk, compiler)?,
+        Token::LeftParen => parse(scanner, chunk, compiler)?,
+        _ => {
+            return Err(format!("unexpected token in sequence: {:?}", op));
+        }
+    };
+
+    scanner.scan().unwrap();
+
+    Ok(())
+}
+
 fn read_atom(
     atom: (Token, usize),
     scanner: &mut Scanner,
     chunk: &mut Chunk,
-    compiler: &mut FloxCompiler,
+    compiler: &mut QbeCompiler,
 ) -> Result<(), String> {
     lazy_static! {
         static ref INT_RE: Regex = Regex::new(r"^-?[0-9]+$").unwrap();
@@ -500,56 +402,52 @@ fn read_atom(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use rstest::*;
+fn binary(
+    op: &str,
+    scanner: &mut Scanner,
+    chunk: &mut Chunk,
+    compiler: &mut QbeCompiler,
+) -> Result<(), String> {
+    let (_, line) = scanner.scan().unwrap();
+    parse(scanner, chunk, compiler)?;
+    parse(scanner, chunk, compiler)?;
 
-    use crate::chunk::Element;
-    use crate::{constant, op};
+    match op {
+        "+" => chunk.write_opcode(OpCode::OpAdd, line),
+        "-" => chunk.write_opcode(OpCode::OpSub, line),
+        "*" => chunk.write_opcode(OpCode::OpMul, line),
+        "/" => chunk.write_opcode(OpCode::OpDiv, line),
+        "=" => chunk.write_opcode(OpCode::OpEq, line),
+        "!=" => chunk.write_opcode(OpCode::OpNe, line),
+        ">" => chunk.write_opcode(OpCode::OpBt, line),
+        ">=" => chunk.write_opcode(OpCode::OpBe, line),
+        "<" => chunk.write_opcode(OpCode::OpLt, line),
+        "<=" => chunk.write_opcode(OpCode::OpLe, line),
+        "and" => chunk.write_opcode(OpCode::OpAnd, line),
+        "nand" => chunk.write_opcode(OpCode::OpNand, line),
+        "or" => chunk.write_opcode(OpCode::OpOr, line),
+        "nor" => chunk.write_opcode(OpCode::OpNor, line),
+        "xor" => chunk.write_opcode(OpCode::OpXor, line),
+        "xnor" => chunk.write_opcode(OpCode::OpXnor, line),
+        _ => return Err(format!("Unexpected binary operation: {}", op)),
+    };
 
-    #[fixture]
-    fn compiler() -> FloxCompiler {
-        FloxCompiler::new(None, Ctx::TopLevel)
-    }
+    Ok(())
+}
 
-    #[fixture]
-    fn chunk() -> Chunk {
-        Chunk::new("main")
-    }
+pub fn unary(
+    op: &str,
+    scanner: &mut Scanner,
+    chunk: &mut Chunk,
+    compiler: &mut QbeCompiler,
+) -> Result<(), String> {
+    parse(scanner, chunk, compiler)?;
+    match op {
+        "not" => chunk.write_opcode(OpCode::OpNot, 1),
+        _ => {
+            return Err(format!("Unexpected unary operation {}", op));
+        }
+    };
 
-    #[rstest]
-    fn test_locals(mut compiler: FloxCompiler) {
-        compiler.set_local(String::from("x"));
-        compiler.set_local(String::from("y"));
-        assert_eq!(compiler.get_local("x"), Some(0));
-        assert_eq!(compiler.get_local("y"), Some(1));
-    }
-
-    #[rstest]
-    fn test_emit_nil(compiler: FloxCompiler, mut chunk: Chunk) {
-        compiler.emit_nil(&mut chunk, 1).unwrap();
-        assert_eq!(chunk.get_code(), vec![op!(OpCode::OpNil)]);
-    }
-
-    #[rstest]
-    fn test_emit_true(compiler: FloxCompiler, mut chunk: Chunk) {
-        compiler.emit_true(&mut chunk, 1).unwrap();
-        assert_eq!(chunk.get_code(), vec![op!(OpCode::OpTrue)]);
-    }
-
-    #[rstest]
-    fn test_emit_false(compiler: FloxCompiler, mut chunk: Chunk) {
-        compiler.emit_false(&mut chunk, 1).unwrap();
-        assert_eq!(chunk.get_code(), vec![op!(OpCode::OpFalse)]);
-    }
-
-    #[rstest]
-    fn test_compile(mut compiler: FloxCompiler, mut chunk: Chunk) {
-        compile("1", &mut chunk, &mut compiler);
-        assert_eq!(
-            chunk.get_code(),
-            vec![op!(OpCode::OpConst), constant!(0), op!(OpCode::OpRet)]
-        );
-    }
+    Ok(())
 }
