@@ -1,0 +1,95 @@
+use std::collections::HashMap;
+
+use crate::qbe;
+
+use crate::compiler::Compiler;
+use crate::parser::parser::Ast;
+
+struct CompilerQbe {
+    program: qbe::Program,
+    builtins: HashMap<String, qbe::Instruction>,
+}
+
+impl CompilerQbe {
+    fn new() -> CompilerQbe {
+        let mut compiler = CompilerQbe {
+            program: qbe::Program::new(),
+            builtins: HashMap::new(),
+        };
+
+        compiler.builtins.insert(
+            "+".to_string(),
+            qbe::Instruction::Add(
+                qbe::Value::Const(0, qbe::Type::Long),
+                qbe::Value::Const(0, qbe::Type::Long),
+            ),
+        );
+
+        compiler
+    }
+
+    fn get_result(&self) -> String {
+        format!("{}", self.program)
+    }
+
+    fn emit_builtin(&mut self, ast: Ast) {}
+}
+
+impl Compiler for CompilerQbe {
+    fn compile(&mut self, ast: &Ast) {
+        let mut main = qbe::Function::new("main", Some(qbe::Type::Word), vec![], true);
+
+        match ast {
+            Ast::Nil => {}
+            Ast::List(list) => {
+                assert!(list.len() != 0);
+                match &list[0] {
+                    Ast::Sym(sym) => {
+                        if self.builtins.contains_key(&sym.clone()) {
+                            self.emit_builtin(list)
+                        }
+                    }
+                    _ => unimplemented!(),
+                }
+                panic!();
+            }
+            _ => unimplemented!(),
+        };
+
+        main.add_statement(qbe::Statement::new(
+            qbe::Instruction::Ret(qbe::Value::Const(0, qbe::Type::Word)),
+            None,
+        ));
+        self.program.add_function(&main);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_init() {
+        CompilerQbe::new();
+    }
+
+    #[test]
+    fn test_with_nil_input() {
+        let mut compiler = CompilerQbe::new();
+        compiler.compile(&Ast::nil());
+        assert_eq!(
+            compiler.get_result(),
+            "export function w $main() {\n@start\n\tret 0\n\n}\n".to_string()
+        );
+    }
+
+    #[test]
+    fn test_with_sum() {
+        let mut compiler = CompilerQbe::new();
+        compiler.compile(&Ast::list(vec![Ast::sym("+"), Ast::int(1), Ast::int(2)]));
+        assert_eq!(
+            compiler.get_result(),
+            "export function w $main() {\n@start\n\tadd 1 2\n\tret 0\n\n}\n".to_string()
+        );
+    }
+}

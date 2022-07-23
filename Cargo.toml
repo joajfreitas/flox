@@ -12,6 +12,7 @@ rustyline = "5.0.3"
 rand = "0.8.4"
 colored = "2.0.0"
 clap = { version = "3.0.0", features = ["derive"] }
+itertools = "0.10.2"
 
 [dev-dependencies]
 serde = { version = "1.0", features = ["derive"] }
