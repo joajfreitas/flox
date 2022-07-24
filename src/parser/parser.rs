@@ -1,7 +1,8 @@
 extern crate regex;
-use regex::{Captures, Regex};
+use lazy_static::lazy_static;
+use regex::Regex;
 
-use crate::scanner::{FloxScanner, Scanner, Token, TokenType};
+use crate::scanner::{Scanner, Token, TokenType};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Ast {
@@ -50,6 +51,13 @@ impl Ast {
             params.iter().map(|x| x.to_string()).collect(),
         )
     }
+
+    pub fn get_sym(&self) -> &String {
+        match self {
+            Ast::Sym(s) => s,
+            _ => panic!(),
+        }
+    }
 }
 
 pub trait Parser {
@@ -81,11 +89,13 @@ impl FloxParser {
     }
 
     fn parse_atom(&mut self, token: &dyn Token) -> Ast {
-        let int_re: Regex = Regex::new(r"^-?[0-9]+$").unwrap();
-        let str_re: Regex = Regex::new(r#""(?:\\.|[^\\"])*""#).unwrap();
+        lazy_static! {
+            static ref INT_RE: Regex = Regex::new(r"^-?[0-9]+$").unwrap();
+            static ref STR_RE: Regex = Regex::new(r#""(?:\\.|[^\\"])*""#).unwrap();
+        }
 
         let atom = token.token().get_atom();
-        if int_re.is_match(&atom) {
+        if INT_RE.is_match(&atom) {
             Ast::int(atom.parse().expect("Failed to parse integer"))
         } else {
             Ast::Sym(atom.clone())
@@ -94,13 +104,12 @@ impl FloxParser {
 }
 
 impl Parser for FloxParser {
-    fn parse(&mut self, scanner: &mut Scanner<Item = Box<dyn Token>>) -> Ast {
+    fn parse(&mut self, scanner: &mut dyn Scanner<Item = Box<dyn Token>>) -> Ast {
         match scanner.token() {
             Some(token) => match token.token() {
                 TokenType::LeftParen => self.read_seq(scanner, &TokenType::RightParen),
                 TokenType::RightParen => Ast::nil(),
                 TokenType::Atom(_) => self.parse_atom(&*token),
-                _ => unimplemented!(),
             },
             None => Ast::nil(),
         }
@@ -109,6 +118,7 @@ impl Parser for FloxParser {
 
 mod test {
     use super::*;
+    use crate::scanner::FloxScanner;
 
     #[test]
     fn test_init_ast() {

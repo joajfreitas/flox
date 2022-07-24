@@ -1,6 +1,3 @@
-use lazy_static::lazy_static;
-use regex::Regex;
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     LeftParen,
@@ -60,13 +57,13 @@ impl Token for FloxToken {
 pub trait Scanner: Iterator {
     fn token(&mut self) -> Option<Box<dyn Token>>;
     fn peek(&mut self) -> Option<Box<dyn Token>>;
+    fn feed(&mut self, source: &str);
 }
 
 #[derive(Debug, Clone)]
 pub struct FloxScanner {
     tokens: Vec<(String, usize)>,
     pos: usize,
-    current_line: usize,
 }
 
 impl FloxScanner {
@@ -74,21 +71,7 @@ impl FloxScanner {
         FloxScanner {
             tokens: tokenize(source),
             pos: 0,
-            current_line: 0,
         }
-    }
-
-    //pub fn previous(&self) -> Option<Box<dyn Token>> {
-    //    let token: &str = &self.tokens[self.pos - 1].0;
-    //    match token {
-    //        "(" => Some(TokenType::LeftParen),
-    //        ")" => Some(TokenType::RightParen),
-    //        _ => Some(TokenType::Atom(token.to_string())),
-    //    }
-    //}
-
-    pub fn get_line(&self) -> usize {
-        self.current_line
     }
 }
 
@@ -118,11 +101,18 @@ impl Scanner for FloxScanner {
             ")" => TokenType::RightParen,
             _ => TokenType::Atom(token.to_string()),
         };
-        self.current_line = *line;
+
         Some(Box::new(FloxToken { line: *line, token }))
+    }
+
+    fn feed(&mut self, source: &str) {
+        self.tokens = tokenize(source);
+        self.pos = 0;
     }
 }
 
+
+//TODO: compare this with flang regex based implementation
 fn tokenize(source: &str) -> Vec<(String, usize)> {
     let source = source.replace("(", " ( ").replace(")", " ) ");
     let lines = source.split('\n');
@@ -203,7 +193,7 @@ mod tests {
 
     #[test]
     fn test_scanner_iterator() {
-        let mut scanner = FloxScanner::new("(+ 1 2)");
+        let scanner = FloxScanner::new("(+ 1 2)");
         let tokens = vec![
             TokenType::LeftParen,
             TokenType::atom("+"),

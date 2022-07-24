@@ -31,8 +31,20 @@ impl CompilerQbe {
     fn get_result(&self) -> String {
         format!("{}", self.program)
     }
-
-    fn emit_builtin(&mut self, ast: Ast) {}
+    
+    fn parse_value(&self, value: &Ast) -> qbe::Value {
+        match value {
+            Ast::Int(i) => qbe::Value::Const(*i as u64, qbe::Type::Long),
+            _ => unimplemented!(),
+        }
+    }
+    fn parse_builtin(&mut self, ast: &Vec<Ast>) -> qbe::Instruction{
+        let op = ast[0].get_sym();
+        match &op as &str {
+            "+" => qbe::Instruction::Add(self.parse_value(&ast[1]), self.parse_value(&ast[2])),
+            _ => unimplemented!(),
+        }
+    }
 }
 
 impl Compiler for CompilerQbe {
@@ -46,12 +58,12 @@ impl Compiler for CompilerQbe {
                 match &list[0] {
                     Ast::Sym(sym) => {
                         if self.builtins.contains_key(&sym.clone()) {
-                            self.emit_builtin(list)
+                            let instruction = self.parse_builtin(list);
+                            main.add_statement(qbe::Statement::new(instruction, None));
                         }
                     }
                     _ => unimplemented!(),
                 }
-                panic!();
             }
             _ => unimplemented!(),
         };
@@ -89,7 +101,7 @@ mod test {
         compiler.compile(&Ast::list(vec![Ast::sym("+"), Ast::int(1), Ast::int(2)]));
         assert_eq!(
             compiler.get_result(),
-            "export function w $main() {\n@start\n\tadd 1 2\n\tret 0\n\n}\n".to_string()
+            "export function w $main() {\n@start\n\tadd 1, 2\n\tret 0\n\n}\n".to_string()
         );
     }
 }
