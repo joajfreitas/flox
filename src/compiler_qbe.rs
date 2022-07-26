@@ -7,7 +7,7 @@ use crate::parser::parser::Ast;
 
 struct CompilerQbe {
     program: qbe::Program,
-    builtins: HashMap<String, qbe::Instruction>,
+    builtins: HashMap<String, qbe::Opcode>,
 }
 
 impl CompilerQbe {
@@ -17,13 +17,7 @@ impl CompilerQbe {
             builtins: HashMap::new(),
         };
 
-        compiler.builtins.insert(
-            "+".to_string(),
-            qbe::Instruction::Add(
-                qbe::Value::Const(0, qbe::Type::Long),
-                qbe::Value::Const(0, qbe::Type::Long),
-            ),
-        );
+        compiler.builtins.insert("+".to_string(), qbe::Opcode::Add);
 
         compiler
     }
@@ -31,17 +25,20 @@ impl CompilerQbe {
     fn get_result(&self) -> String {
         format!("{}", self.program)
     }
-    
+
     fn parse_value(&self, value: &Ast) -> qbe::Value {
         match value {
-            Ast::Int(i) => qbe::Value::Const(*i as u64, qbe::Type::Long),
+            Ast::Int(i) => qbe::Value::ConstLong(*i as u64),
             _ => unimplemented!(),
         }
     }
-    fn parse_builtin(&mut self, ast: &Vec<Ast>) -> qbe::Instruction{
+    fn parse_builtin(&mut self, ast: &Vec<Ast>) -> qbe::Instruction {
         let op = ast[0].get_sym();
         match &op as &str {
-            "+" => qbe::Instruction::Add(self.parse_value(&ast[1]), self.parse_value(&ast[2])),
+            "+" => qbe::Instruction::new(
+                qbe::Opcode::Add,
+                vec![self.parse_value(&ast[1]), self.parse_value(&ast[2])],
+            ),
             _ => unimplemented!(),
         }
     }
@@ -69,7 +66,7 @@ impl Compiler for CompilerQbe {
         };
 
         main.add_statement(qbe::Statement::new(
-            qbe::Instruction::Ret(qbe::Value::Const(0, qbe::Type::Word)),
+            qbe::Instruction::new(qbe::Opcode::Ret, vec![qbe::Value::ConstWord(0)]),
             None,
         ));
         self.program.add_function(&main);

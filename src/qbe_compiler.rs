@@ -33,7 +33,7 @@ impl QbeCompiler {
 
     fn set_local(&mut self, name: String) -> usize {
         self.locals.push(name);
-        self.locals.len() - 1A
+        self.locals.len() - 1
     }
 
     fn get_local(&self, name: &str) -> Option<usize> {

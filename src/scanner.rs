@@ -111,7 +111,6 @@ impl Scanner for FloxScanner {
     }
 }
 
-
 //TODO: compare this with flang regex based implementation
 fn tokenize(source: &str) -> Vec<(String, usize)> {
     let source = source.replace("(", " ( ").replace(")", " ) ");

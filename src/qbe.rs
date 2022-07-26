@@ -3,7 +3,7 @@ use itertools::Itertools;
 use std::fmt;
 
 #[allow(dead_code)]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Type {
     Word,
     Long,
@@ -19,6 +19,7 @@ impl fmt::Display for Type {
         match self {
             Type::Word => write!(f, "w"),
             Type::Long => write!(f, "l"),
+            Type::Variadic => write!(f, "..."),
             _ => panic!(),
         }
     }
@@ -26,223 +27,245 @@ impl fmt::Display for Type {
 
 #[allow(dead_code)]
 #[derive(Clone, PartialEq)]
-pub enum Instruction {
-    Add(Value, Value),
-    And(Value, Value),
-    Div(Value, Value),
-    Mul(Value, Value),
-    Neg(Value, Value),
-    Or(Value, Value),
-    Rem(Value, Value),
-    Sar(Value, Value),
-    Shl(Value, Value),
-    Shr(Value, Value),
-    Sub(Value, Value),
-    Udiv(Value, Value),
-    Urem(Value, Value),
-    Xor(Value, Value),
-    Alloc16(Value),
-    Alloc4(Value),
-    Alloc8(Value),
-    Loadd(Value),
-    Loadl(Value),
-    Loads(Value),
-    Loadsb(Value),
-    Loadsh(Value),
-    Loadsw(Value),
-    Loadub(Value),
-    Loaduh(Value),
-    Loaduw(Value),
-    Loadw(Value),
-    Storeb(Value, Value),
-    Stored(Value, Value),
-    Storeh(Value, Value),
-    Storel(Value, Value),
-    Stores(Value, Value),
-    Storew(Value, Value),
-    Ceqd(Value, Value),
-    Ceql(Value, Value),
-    Ceqs(Value, Value),
-    Ceqw(Value, Value),
-    Cged(Value, Value),
-    Cges(Value, Value),
-    Cgtd(Value, Value),
-    Cgts(Value, Value),
-    Cled(Value, Value),
-    Cles(Value, Value),
-    Cltd(Value, Value),
-    Clts(Value, Value),
-    Cned(Value, Value),
-    Cnel(Value, Value),
-    Cnes(Value, Value),
-    Cnew(Value, Value),
-    Cod(Value, Value),
-    Cos(Value, Value),
-    Csgel(Value, Value),
-    Csgew(Value, Value),
-    Csgtl(Value, Value),
-    Csgtw(Value, Value),
-    Cslel(Value, Value),
-    Cslew(Value, Value),
-    Csltl(Value, Value),
-    Csltw(Value, Value),
-    Cugel(Value, Value),
-    Cugew(Value, Value),
-    Cugtl(Value, Value),
-    Cugtw(Value, Value),
-    Culel(Value, Value),
-    Culew(Value, Value),
-    Cultl(Value, Value),
-    Cultw(Value, Value),
-    Cuod(Value, Value),
-    Cuos(Value, Value),
-    Dtosi(Value),
-    Dtoui(Value),
-    Exts(Value),
-    Extsb(Value),
-    Extsh(Value),
-    Extsw(Value),
-    Extub(Value),
-    Extuh(Value),
-    Extuw(Value),
-    Sltof(Value),
-    Ultof(Value),
-    Stosi(Value),
-    Stoui(Value),
-    Swtof(Value),
-    Uwtof(Value),
-    Truncd(Value),
-    Cast(Value),
-    Copy(Value),
-    Vastart(Value),
-    Vaarg(Value),
-    Phi(Vec<(String, Value)>),
-    Jmp(String),
-    Jnz(Value, String, String),
-    Ret(Value),
-    Call(String, Vec<(Type, Value)>),
+pub enum Opcode {
+    Add,
+    And,
+    Div,
+    Mul,
+    Neg,
+    Or,
+    Rem,
+    Sar,
+    Shl,
+    Shr,
+    Sub,
+    Udiv,
+    Urem,
+    Xor,
+    Alloc16,
+    Alloc4,
+    Alloc8,
+    Loadd,
+    Loadl,
+    Loads,
+    Loadsb,
+    Loadsh,
+    Loadsw,
+    Loadub,
+    Loaduh,
+    Loaduw,
+    Loadw,
+    Storeb,
+    Stored,
+    Storeh,
+    Storel,
+    Stores,
+    Storew,
+    Ceqd,
+    Ceql,
+    Ceqs,
+    Ceqw,
+    Cged,
+    Cges,
+    Cgtd,
+    Cgts,
+    Cled,
+    Cles,
+    Cltd,
+    Clts,
+    Cned,
+    Cnel,
+    Cnes,
+    Cnew,
+    Cod,
+    Cos,
+    Csgel,
+    Csgew,
+    Csgtl,
+    Csgtw,
+    Cslel,
+    Cslew,
+    Csltl,
+    Csltw,
+    Cugel,
+    Cugew,
+    Cugtl,
+    Cugtw,
+    Culel,
+    Culew,
+    Cultl,
+    Cultw,
+    Cuod,
+    Cuos,
+    Dtosi,
+    Dtoui,
+    Exts,
+    Extsb,
+    Extsh,
+    Extsw,
+    Extub,
+    Extuh,
+    Extuw,
+    Sltof,
+    Ultof,
+    Stosi,
+    Stoui,
+    Swtof,
+    Uwtof,
+    Truncd,
+    Cast,
+    Copy,
+    Vastart,
+    Vaarg,
+    Phi,
+    Jmp,
+    Jnz,
+    Ret,
+    Call,
 }
 
 #[allow(unstable_name_collisions)]
-impl fmt::Display for Instruction {
+impl fmt::Display for Opcode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Instruction::Add(a, b) => write!(f, "add {}, {}", a, b),
-            Instruction::And(a, b) => write!(f, "and {}, {}", a, b),
-            Instruction::Div(a, b) => write!(f, "div {}, {}", a, b),
-            Instruction::Mul(a, b) => write!(f, "mul {}, {}", a, b),
-            Instruction::Neg(a, b) => write!(f, "neg {}, {}", a, b),
-            Instruction::Or(a, b) => write!(f, "or {}, {}", a, b),
-            Instruction::Rem(a, b) => write!(f, "rem {}, {}", a, b),
-            Instruction::Sar(a, b) => write!(f, "sar {}, {}", a, b),
-            Instruction::Shl(a, b) => write!(f, "shl {}, {}", a, b),
-            Instruction::Shr(a, b) => write!(f, "shr {}, {}", a, b),
-            Instruction::Sub(a, b) => write!(f, "sub {}, {}", a, b),
-            Instruction::Udiv(a, b) => write!(f, "udiv {}, {}", a, b),
-            Instruction::Urem(a, b) => write!(f, "urem {}, {}", a, b),
-            Instruction::Xor(a, b) => write!(f, "xor {}, {}", a, b),
-            Instruction::Alloc16(x) => write!(f, "alloc16 {}", x),
-            Instruction::Alloc4(x) => write!(f, "alloc4 {}", x),
-            Instruction::Alloc8(x) => write!(f, "alloc8 {}", x),
-            Instruction::Loadd(x) => write!(f, "loadd {}", x),
-            Instruction::Loadl(x) => write!(f, "loadl {}", x),
-            Instruction::Loads(x) => write!(f, "loads {}", x),
-            Instruction::Loadsb(x) => write!(f, "loadsb {}", x),
-            Instruction::Loadsh(x) => write!(f, "loadsh {}", x),
-            Instruction::Loadsw(x) => write!(f, "loadsw {}", x),
-            Instruction::Loadub(x) => write!(f, "loadub {}", x),
-            Instruction::Loaduh(x) => write!(f, "loaduh {}", x),
-            Instruction::Loaduw(x) => write!(f, "loaduw {}", x),
-            Instruction::Loadw(x) => write!(f, "loadw {}", x),
-            Instruction::Storeb(a, b) => write!(f, "storeb {} {}", a, b),
-            Instruction::Stored(a, b) => write!(f, "stored {} {}", a, b),
-            Instruction::Storeh(a, b) => write!(f, "storeh {} {}", a, b),
-            Instruction::Storel(a, b) => write!(f, "storel {} {}", a, b),
-            Instruction::Stores(a, b) => write!(f, "stores {} {}", a, b),
-            Instruction::Storew(a, b) => write!(f, "storew {} {}", a, b),
-            Instruction::Ceqd(a, b) => write!(f, "ceqd {} {}", a, b),
-            Instruction::Ceql(a, b) => write!(f, "ceql {} {}", a, b),
-            Instruction::Ceqs(a, b) => write!(f, "ceqs {} {}", a, b),
-            Instruction::Ceqw(a, b) => write!(f, "ceqw {} {}", a, b),
-            Instruction::Cged(a, b) => write!(f, "cged {} {}", a, b),
-            Instruction::Cges(a, b) => write!(f, "cges {} {}", a, b),
-            Instruction::Cgtd(a, b) => write!(f, "cgtd {} {}", a, b),
-            Instruction::Cgts(a, b) => write!(f, "cgts {} {}", a, b),
-            Instruction::Cled(a, b) => write!(f, "cled {} {}", a, b),
-            Instruction::Cles(a, b) => write!(f, "cles {} {}", a, b),
-            Instruction::Cltd(a, b) => write!(f, "cltd {} {}", a, b),
-            Instruction::Clts(a, b) => write!(f, "clts {} {}", a, b),
-            Instruction::Cned(a, b) => write!(f, "cned {} {}", a, b),
-            Instruction::Cnel(a, b) => write!(f, "cnel {} {}", a, b),
-            Instruction::Cnes(a, b) => write!(f, "cnes {} {}", a, b),
-            Instruction::Cnew(a, b) => write!(f, "cnew {} {}", a, b),
-            Instruction::Cod(a, b) => write!(f, "cod {} {}", a, b),
-            Instruction::Cos(a, b) => write!(f, "cos {} {}", a, b),
-            Instruction::Csgel(a, b) => write!(f, "csgel {} {}", a, b),
-            Instruction::Csgew(a, b) => write!(f, "csgew {} {}", a, b),
-            Instruction::Csgtl(a, b) => write!(f, "csgtl {} {}", a, b),
-            Instruction::Csgtw(a, b) => write!(f, "csgtw {} {}", a, b),
-            Instruction::Cslel(a, b) => write!(f, "cslel {} {}", a, b),
-            Instruction::Cslew(a, b) => write!(f, "cslew {} {}", a, b),
-            Instruction::Csltl(a, b) => write!(f, "csltl {} {}", a, b),
-            Instruction::Csltw(a, b) => write!(f, "cslttw {} {}", a, b),
-            Instruction::Cugel(a, b) => write!(f, "cugel {} {}", a, b),
-            Instruction::Cugew(a, b) => write!(f, "cugew {} {}", a, b),
-            Instruction::Cugtl(a, b) => write!(f, "cugl {} {}", a, b),
-            Instruction::Cugtw(a, b) => write!(f, "cugtw {} {}", a, b),
-            Instruction::Culel(a, b) => write!(f, "culel {} {}", a, b),
-            Instruction::Culew(a, b) => write!(f, "culew {} {}", a, b),
-            Instruction::Cultl(a, b) => write!(f, "cultl {} {}", a, b),
-            Instruction::Cultw(a, b) => write!(f, "cultw {} {}", a, b),
-            Instruction::Cuod(a, b) => write!(f, "cuod {} {}", a, b),
-            Instruction::Cuos(a, b) => write!(f, "cuos {} {}", a, b),
-            Instruction::Dtosi(x) => write!(f, "dtosi {}", x),
-            Instruction::Dtoui(x) => write!(f, "dtoui {}", x),
-            Instruction::Exts(x) => write!(f, "exts {}", x),
-            Instruction::Extsb(x) => write!(f, "extsb {}", x),
-            Instruction::Extsh(x) => write!(f, "extsh {}", x),
-            Instruction::Extsw(x) => write!(f, "estsw {}", x),
-            Instruction::Extub(x) => write!(f, "extub {}", x),
-            Instruction::Extuh(x) => write!(f, "extuh {}", x),
-            Instruction::Extuw(x) => write!(f, "extuw {}", x),
-            Instruction::Sltof(x) => write!(f, "sltof {}", x),
-            Instruction::Ultof(x) => write!(f, "ultof {}", x),
-            Instruction::Stosi(x) => write!(f, "stosi {}", x),
-            Instruction::Stoui(x) => write!(f, "stoui {}", x),
-            Instruction::Swtof(x) => write!(f, "swtof {}", x),
-            Instruction::Uwtof(x) => write!(f, "uwtof {}", x),
-            Instruction::Truncd(x) => write!(f, "trucd {}", x),
-            Instruction::Cast(x) => write!(f, "cast {}", x),
-            Instruction::Copy(x) => write!(f, "copy {}", x),
-            Instruction::Vastart(x) => write!(f, "vastart {}", x),
-            Instruction::Vaarg(x) => write!(f, "vaarg {}", x),
-            Instruction::Jmp(x) => write!(f, "jmp {}", x),
-            Instruction::Jnz(v, i1, i2) => write!(f, "jnz {} {} {}", v, i1, i2),
-            Instruction::Ret(x) => write!(f, "ret {}", x),
+            Opcode::Add => write!(f, "add"),
+            Opcode::And => write!(f, "and"),
+            Opcode::Div => write!(f, "div"),
+            Opcode::Mul => write!(f, "mul"),
+            Opcode::Neg => write!(f, "neg"),
+            Opcode::Or => write!(f, "or"),
+            Opcode::Rem => write!(f, "rem"),
+            Opcode::Sar => write!(f, "sar"),
+            Opcode::Shl => write!(f, "shl"),
+            Opcode::Shr => write!(f, "shr"),
+            Opcode::Sub => write!(f, "sub"),
+            Opcode::Udiv => write!(f, "udiv"),
+            Opcode::Urem => write!(f, "urem"),
+            Opcode::Xor => write!(f, "xor"),
+            Opcode::Alloc16 => write!(f, "alloc16"),
+            Opcode::Alloc4 => write!(f, "alloc4"),
+            Opcode::Alloc8 => write!(f, "alloc8"),
+            Opcode::Loadd => write!(f, "loadd"),
+            Opcode::Loadl => write!(f, "loadl"),
+            Opcode::Loads => write!(f, "loads"),
+            Opcode::Loadsb => write!(f, "loadsb"),
+            Opcode::Loadsh => write!(f, "loadsh"),
+            Opcode::Loadsw => write!(f, "loadsw"),
+            Opcode::Loadub => write!(f, "loadub"),
+            Opcode::Loaduh => write!(f, "loaduh"),
+            Opcode::Loaduw => write!(f, "loaduw"),
+            Opcode::Loadw => write!(f, "loadw"),
+            Opcode::Storeb => write!(f, "storeb"),
+            Opcode::Stored => write!(f, "stored"),
+            Opcode::Storeh => write!(f, "storeh"),
+            Opcode::Storel => write!(f, "storel"),
+            Opcode::Stores => write!(f, "stores"),
+            Opcode::Storew => write!(f, "storew"),
+            Opcode::Ceqd => write!(f, "ceqd"),
+            Opcode::Ceql => write!(f, "ceql"),
+            Opcode::Ceqs => write!(f, "ceqs"),
+            Opcode::Ceqw => write!(f, "ceqw"),
+            Opcode::Cged => write!(f, "cged"),
+            Opcode::Cges => write!(f, "cges"),
+            Opcode::Cgtd => write!(f, "cgtd"),
+            Opcode::Cgts => write!(f, "cgts"),
+            Opcode::Cled => write!(f, "cled"),
+            Opcode::Cles => write!(f, "cles"),
+            Opcode::Cltd => write!(f, "cltd"),
+            Opcode::Clts => write!(f, "clts"),
+            Opcode::Cned => write!(f, "cned"),
+            Opcode::Cnel => write!(f, "cnel"),
+            Opcode::Cnes => write!(f, "cnes"),
+            Opcode::Cnew => write!(f, "cnew"),
+            Opcode::Cod => write!(f, "cod"),
+            Opcode::Cos => write!(f, "cos"),
+            Opcode::Csgel => write!(f, "csgel"),
+            Opcode::Csgew => write!(f, "csgew"),
+            Opcode::Csgtl => write!(f, "csgtl"),
+            Opcode::Csgtw => write!(f, "csgtw"),
+            Opcode::Cslel => write!(f, "cslel"),
+            Opcode::Cslew => write!(f, "cslew"),
+            Opcode::Csltl => write!(f, "csltl"),
+            Opcode::Csltw => write!(f, "cslttw"),
+            Opcode::Cugel => write!(f, "cugel"),
+            Opcode::Cugew => write!(f, "cugew"),
+            Opcode::Cugtl => write!(f, "cugl"),
+            Opcode::Cugtw => write!(f, "cugtw"),
+            Opcode::Culel => write!(f, "culel"),
+            Opcode::Culew => write!(f, "culew"),
+            Opcode::Cultl => write!(f, "cultl"),
+            Opcode::Cultw => write!(f, "cultw"),
+            Opcode::Cuod => write!(f, "cuod"),
+            Opcode::Cuos => write!(f, "cuos"),
+            Opcode::Dtosi => write!(f, "dtosi"),
+            Opcode::Dtoui => write!(f, "dtoui"),
+            Opcode::Exts => write!(f, "exts"),
+            Opcode::Extsb => write!(f, "extsb"),
+            Opcode::Extsh => write!(f, "extsh"),
+            Opcode::Extsw => write!(f, "estsw"),
+            Opcode::Extub => write!(f, "extub"),
+            Opcode::Extuh => write!(f, "extuh"),
+            Opcode::Extuw => write!(f, "extuw"),
+            Opcode::Sltof => write!(f, "sltof"),
+            Opcode::Ultof => write!(f, "ultof"),
+            Opcode::Stosi => write!(f, "stosi"),
+            Opcode::Stoui => write!(f, "stoui"),
+            Opcode::Swtof => write!(f, "swtof"),
+            Opcode::Uwtof => write!(f, "uwtof"),
+            Opcode::Truncd => write!(f, "trucd"),
+            Opcode::Cast => write!(f, "cast"),
+            Opcode::Copy => write!(f, "copy"),
+            Opcode::Vastart => write!(f, "vastart"),
+            Opcode::Vaarg => write!(f, "vaarg"),
+            Opcode::Jmp => write!(f, "jmp"),
+            Opcode::Jnz => write!(f, "jnz"),
+            Opcode::Ret => write!(f, "ret"),
+            Opcode::Phi => write!(f, "phi"),
+            Opcode::Call => write!(f, "call"),
+        }
+    }
+}
 
-            Instruction::Phi(phis) => {
-                let args: String = phis
+impl Opcode {
+    
+}
+
+#[derive(Clone, PartialEq)]
+pub struct Instruction {
+    opcode: Opcode,
+    args: Vec<Value>,
+}
+
+impl fmt::Display for Instruction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.opcode {
+            Opcode::Phi => {
+                let args: String = self.args.windows(2).map(|values| format!("{} {}", values[0], values[1])).intersperse(", ".to_string()).collect();
+                write!(f, "{} {}", self.opcode, args)
+            },
+            Opcode::Call => {
+                let args: String = self.args[1..].iter().map(|arg| match arg {
+                    Value::Variadic => format!("{}", arg.get_type().unwrap()),
+                    _ => format!("{} {}", arg.get_type().expect("Expected value with type"), arg),
+                }).intersperse(", ".to_string()).collect();
+                write!(f, "{} {}({})", self.opcode, self.args[0], args)
+            },
+            _ => {
+                let args: String = self
+                    .args
                     .iter()
-                    .map(|(identifier, value)| format!("@{} {}", identifier, value))
+                    .map(|arg| format!("{}", arg))
                     .intersperse(", ".to_string())
                     .collect();
-                write!(f, "phi {}", args)
-            }
-            Instruction::Call(name, arguments) => {
-                write!(f, "call ${}(", name)?;
-
-                let args: String = arguments
-                    .iter()
-                    .map(|(typ, value)| match *typ {
-                        Type::Variadic => format!("..."),
-                        _ => format!("{} {}", typ, value),
-                    })
-                    .intersperse(", ".to_string())
-                    .collect();
-
-                write!(f, "{})", args)
+                write!(f, "{} {}", self.opcode, args)
             }
         }
+    }
+}
+
+impl Instruction {
+    pub fn new(opcode: Opcode, args: Vec<Value>) -> Instruction {
+        Instruction { opcode, args }
     }
 }
 
@@ -251,9 +274,14 @@ impl fmt::Display for Instruction {
 pub enum Value {
     Local(String, Type),
     Global(String, Type),
-    Const(u64, Type),
-    ConstSingle(f32, Type),
-    ConstDouble(f64, Type),
+    ConstWord(u32),
+    ConstLong(u64),
+    ConstSingle(f32),
+    ConstDouble(f64),
+    ConstByte(u8),
+    ConstHalfWord(u16),
+    Block(String),
+    Variadic,
     None,
 }
 
@@ -262,24 +290,45 @@ impl fmt::Display for Value {
         match self {
             Value::Local(var, _) => write!(f, "%{}", var),
             Value::Global(var, _) => write!(f, "${}", var),
-            Value::Const(constant, _) => write!(f, "{}", constant),
-            Value::ConstSingle(constant, _) => write!(f, "s_{}", constant),
-            Value::ConstDouble(constant, _) => write!(f, "d_{}", constant),
+            Value::ConstWord(constant) => write!(f, "{}", constant),
+            Value::ConstLong(constant) => write!(f, "{}", constant),
+            Value::ConstSingle(constant) => write!(f, "{}", constant),
+            Value::ConstDouble(constant) => write!(f, "{}", constant),
+            Value::ConstByte(constant) => write!(f, "{}", constant),
+            Value::ConstHalfWord(constant) => write!(f, "{}", constant),
+            Value::Block(block) => write!(f, "@{}", block),
             _ => panic!(),
         }
     }
 }
 
 impl Value {
-    fn get_type(&self) -> Type {
+    fn get_type(&self) -> Result<Type, String> {
         match self {
-            Value::Local(_, typ) => *typ,
-            Value::Global(_, typ) => *typ,
-            Value::Const(_, typ) => *typ,
-            Value::ConstSingle(_, typ) => *typ,
-            Value::ConstDouble(_, typ) => *typ,
+            Value::Local(_, typ) => Ok(*typ),
+            Value::Global(_, typ) => Ok(*typ),
+            Value::ConstWord(_) => Ok(Type::Word),
+            Value::ConstLong(_) => Ok(Type::Long),
+            Value::ConstSingle(_) => Ok(Type::Single),
+            Value::ConstDouble(_) => Ok(Type::Double),
+            Value::ConstByte(_) => Ok(Type::Byte),
+            Value::ConstHalfWord(_) => Ok(Type::HalfWord),
+            Value::Block(_) => Err("Block value has no type".to_string()),
+            Value::Variadic => Ok(Type::Variadic),
             _ => panic!(),
         }
+    }
+
+    fn local(name: &str, typ: Type) -> Value {
+        Value::Local(name.to_string(), typ)
+    }
+
+    fn global(name: &str, typ: Type) -> Value {
+        Value::Global(name.to_string(), typ)
+    }
+
+    fn block(name: &str) -> Value {
+        Value::Block(name.to_string())
     }
 }
 
@@ -293,7 +342,13 @@ impl fmt::Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.ret {
             None => write!(f, "{}", self.instruction)?,
-            Some(ret) => write!(f, "{} ={} {}", ret, ret.get_type(), self.instruction)?,
+            Some(ret) => write!(
+                f,
+                "{} ={} {}",
+                ret,
+                ret.get_type().expect("expeced type"),
+                self.instruction
+            )?,
         };
 
         Ok(())
@@ -440,5 +495,46 @@ impl Program {
 
     pub fn add_data(&mut self, data: &Data) {
         self.data.push(data.clone());
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use rstest::*;
+
+    #[rstest]
+    #[case(Value::Local("a".to_string(), Type::Word),  "%a",     Ok(Type::Word))]
+    #[case(Value::Global("a".to_string(), Type::Word), "$a",     Ok(Type::Word))]
+    #[case(Value::ConstWord(0), "0", Ok(Type::Word))]
+    #[case(Value::ConstLong(0), "0", Ok(Type::Long))]
+    #[case(Value::ConstSingle(0.0), "0", Ok(Type::Single))]
+    #[case(Value::ConstDouble(0.0), "0", Ok(Type::Double))]
+    #[case(Value::ConstByte(0), "0", Ok(Type::Byte))]
+    #[case(Value::ConstHalfWord(0), "0", Ok(Type::HalfWord))]
+    #[case(Value::Block("block".to_string()),          "@block", Err("Block value has no type".to_string()))]
+    fn test_value_init(
+        #[case] value: Value,
+        #[case] format: &str,
+        #[case] typ: Result<Type, String>,
+    ) {
+        assert_eq!(format!("{}", value), format.to_string());
+        assert_eq!(value.get_type(), typ);
+    }
+
+    #[rstest]
+    #[case(Opcode::Add,  vec![Value::ConstWord(0), Value::ConstWord(1)], "add 0, 1")]
+    #[case(Opcode::Neg,  vec![Value::ConstWord(0)], "neg 0")]
+    #[case(Opcode::Alloc16,  vec![Value::ConstWord(0)], "alloc16 0")]
+    #[case(Opcode::Ret,  vec![], "ret ")]
+    #[case(Opcode::Ret,  vec![Value::ConstWord(0)], "ret 0")]
+    #[case(Opcode::Phi,  vec![Value::local("a", Type::Word), Value::ConstWord(0)], "phi %a 0")]
+    #[case(Opcode::Call,  vec![Value::global("printf", Type::Word), Value::local("fmt", Type::Long), Value::Variadic, Value::ConstWord(0)], "call $printf(l %fmt, ..., w 0)")]
+    fn test_instruction_init(
+        #[case] opcode: Opcode,
+        #[case] args: Vec<Value>,
+        #[case] result: &str,
+    ) {
+        assert_eq!(format!("{}", Instruction::new(opcode, args)), result);
     }
 }
