@@ -6,7 +6,7 @@
 //use crate::chunk::object::Object;
 //use crate::chunk::value::Value;
 //use crate::chunk::{Chunk, OpCode};
-use crate::parser::parser::Ast;
+use crate::parser::ast::Ast;
 
 pub trait Compiler {
     fn compile(&mut self, ast: &Ast);

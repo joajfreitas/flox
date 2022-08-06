@@ -26,7 +26,7 @@ impl fmt::Display for Type {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Opcode {
     Add,
     And,
@@ -226,9 +226,7 @@ impl fmt::Display for Opcode {
     }
 }
 
-impl Opcode {
-    
-}
+impl Opcode {}
 
 #[derive(Clone, PartialEq)]
 pub struct Instruction {
@@ -240,16 +238,29 @@ impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.opcode {
             Opcode::Phi => {
-                let args: String = self.args.windows(2).map(|values| format!("{} {}", values[0], values[1])).intersperse(", ".to_string()).collect();
+                let args: String = self
+                    .args
+                    .windows(2)
+                    .map(|values| format!("{} {}", values[0], values[1]))
+                    .intersperse(", ".to_string())
+                    .collect();
                 write!(f, "{} {}", self.opcode, args)
-            },
+            }
             Opcode::Call => {
-                let args: String = self.args[1..].iter().map(|arg| match arg {
-                    Value::Variadic => format!("{}", arg.get_type().unwrap()),
-                    _ => format!("{} {}", arg.get_type().expect("Expected value with type"), arg),
-                }).intersperse(", ".to_string()).collect();
+                let args: String = self.args[1..]
+                    .iter()
+                    .map(|arg| match arg {
+                        Value::Variadic => format!("{}", arg.get_type().unwrap()),
+                        _ => format!(
+                            "{} {}",
+                            arg.get_type().expect("Expected value with type"),
+                            arg
+                        ),
+                    })
+                    .intersperse(", ".to_string())
+                    .collect();
                 write!(f, "{} {}({})", self.opcode, self.args[0], args)
-            },
+            }
             _ => {
                 let args: String = self
                     .args
@@ -264,8 +275,11 @@ impl fmt::Display for Instruction {
 }
 
 impl Instruction {
-    pub fn new(opcode: Opcode, args: Vec<Value>) -> Instruction {
-        Instruction { opcode, args }
+    pub fn new(opcode: &Opcode, args: Vec<Value>) -> Instruction {
+        Instruction {
+            opcode: *opcode,
+            args,
+        }
     }
 }
 
@@ -319,15 +333,15 @@ impl Value {
         }
     }
 
-    fn local(name: &str, typ: Type) -> Value {
+    pub fn local(name: &str, typ: Type) -> Value {
         Value::Local(name.to_string(), typ)
     }
 
-    fn global(name: &str, typ: Type) -> Value {
+    pub fn global(name: &str, typ: Type) -> Value {
         Value::Global(name.to_string(), typ)
     }
 
-    fn block(name: &str) -> Value {
+    pub fn block(name: &str) -> Value {
         Value::Block(name.to_string())
     }
 }
@@ -358,6 +372,10 @@ impl fmt::Display for Statement {
 impl Statement {
     pub fn new(instruction: Instruction, ret: Option<Value>) -> Statement {
         Statement { instruction, ret }
+    }
+
+    pub fn set_ret(&mut self, ret: Option<Value>) {
+        self.ret = ret;
     }
 }
 
@@ -535,6 +553,6 @@ mod test {
         #[case] args: Vec<Value>,
         #[case] result: &str,
     ) {
-        assert_eq!(format!("{}", Instruction::new(opcode, args)), result);
+        assert_eq!(format!("{}", Instruction::new(&opcode, args)), result);
     }
 }
