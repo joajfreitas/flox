@@ -216,7 +216,7 @@ mod tests {
     fn test_empty() {
         let mut vm = VirtualMachine::new(false);
         let mut chunk = Chunk::new("test");
-        vm.run(&mut chunk);
+        assert_eq!(vm.run(&mut chunk).is_err(), true);
     }
 
     #[test]
@@ -224,6 +224,6 @@ mod tests {
         let mut vm = VirtualMachine::new(false);
         let mut chunk = Chunk::new("test");
         chunk.write_opcode(OpCode::OpReturn, 1);
-        vm.run(&mut chunk);
+        vm.run(&mut chunk).unwrap();
     }
 }
