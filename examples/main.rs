@@ -22,6 +22,7 @@ fn repl(debug: bool) {
     rl.load_history(".flang-history").unwrap();
     let prompt: String = "user> ".to_string();
     let mut vm = VirtualMachine::new(debug);
+
     let mut comp = Compiler::new(None, Ctx::TopLevel);
     let mut chunk = Chunk::new("test chunk");
 
