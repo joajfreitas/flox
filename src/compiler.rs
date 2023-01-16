@@ -8,14 +8,14 @@ use crate::scanner::{Scanner, Token};
 #[derive(Clone)]
 pub struct Compiler {
     locals: Vec<String>,
-    up: Option<Box<Compiler>>,
+    //up: Option<Box<Compiler>>,
 }
 
 impl Compiler {
-    pub fn new(up: Option<Box<Compiler>>) -> Compiler {
+    pub fn new(/*up: Option<Box<Compiler>>*/) -> Compiler {
         Compiler {
             locals: Vec::new(),
-            up,
+            //up,
         }
     }
 
@@ -156,7 +156,7 @@ fn read_shallow_list(scanner: &mut Scanner) -> Option<Vec<Token>> {
     Some(v)
 }
 
-fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object, String> {
+fn parse_lambda(scanner: &mut Scanner, /*, compiler: &mut Compiler*/) -> Result<Object, String> {
     assert!(scanner.scan().unwrap() == Token::Atom("lambda".to_string()));
     let args = read_shallow_list(scanner).unwrap();
     let mut rng = rand::thread_rng();
@@ -168,7 +168,7 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
         name,
     };
 
-    let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())));
+    let mut compiler = Compiler::new(/*Some(Box::new((*compiler).clone()))*/);
 
     for arg in args {
         compiler.set_local(arg.atom());
@@ -178,7 +178,7 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
     Ok(Object::Function(Box::new(closure)))
 }
 
-fn parse_defun(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object, String> {
+fn parse_defun(scanner: &mut Scanner /*, compiler: &mut Compiler*/) -> Result<Object, String> {
     assert!(scanner.scan().unwrap() == Token::Atom("defun".to_string()));
     let _tok = dbg!(scanner.scan().unwrap());
     let args = read_shallow_list(scanner).unwrap();
@@ -191,7 +191,7 @@ fn parse_defun(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object,
         name,
     };
 
-    let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())));
+    let mut compiler = Compiler::new(/*Some(Box::new((*compiler).clone()))*/);
 
     for arg in args {
         compiler.set_local(arg.atom());
@@ -282,13 +282,13 @@ fn read_atom(
         }
         "lambda" => {
             chunk.write_opcode(OpCode::OpConstant, 1);
-            let lambda = parse_lambda(scanner, compiler)?;
+            let lambda = parse_lambda(scanner /*, compiler*/)?;
             let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
             chunk.write_constant(idx as u8, 1);
             return Ok(());
         }
         "defun" => {
-            let _lambda = parse_defun(scanner, compiler)?;
+            let _lambda = parse_defun(scanner /*, compiler*/)?;
         }
         _ => {}
     }
