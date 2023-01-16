@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::fmt::Write as _;
 //use std::collections::HashMap;
 use std::fmt;
 use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Not, Sub};
@@ -429,15 +430,17 @@ impl Chunk {
     pub fn display_instruction(&self, index: usize) -> Option<(String, usize)> {
         let mut s = String::new();
 
-        s.push_str(&format!("{:0>4} ", index));
+        write!(s, "{:0>4} ", index).unwrap();
 
         if index > 0 && self.get_line(index) == self.get_line(index - 1) {
-            s.push_str(&format!(
+            write!(
+                s,
                 "{}| ",
                 " ".repeat(self.get_line(index).to_string().chars().count())
-            ));
+            )
+            .unwrap();
         } else {
-            s.push_str(&format!("{} ", self.get_line(index)));
+            write!(s, "{}", self.get_line(index)).unwrap();
         }
 
         let opcode = self.get_opcode(index)?;
