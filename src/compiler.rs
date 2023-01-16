@@ -35,6 +35,12 @@ impl Compiler {
     }
 }
 
+impl Default for Compiler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub fn compile(source: &str, chunk: &mut Chunk, compiler: &mut Compiler) -> Result<(), String> {
     let mut scanner = Scanner::new(source);
     parse(&mut scanner, chunk, compiler)?;
