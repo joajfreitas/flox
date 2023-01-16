@@ -246,7 +246,7 @@ impl Not for Value {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Value::Number(value) => write!(f, "{:.1}", value),
+            Value::Number(value) => write!(f, "{}", value),
             Value::Bool(value) => write!(f, "{:1}", value),
             Value::Nil => write!(f, "nil"),
             Value::Obj(obj) => match &**obj {
