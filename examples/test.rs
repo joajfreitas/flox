@@ -1,17 +1,12 @@
-use std::env;
 use std::fs;
-use std::io;
 use std::io::{Error, ErrorKind};
 
 use serde::{Deserialize, Serialize};
 use serde_json;
 
-use colored::Colorize;
-
 use clap::Parser;
 
 use flox::rep;
-use flox::vm::VMErr;
 
 #[derive(Parser, Debug)]
 #[clap(about, version, author)]
