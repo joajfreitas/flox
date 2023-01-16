@@ -187,9 +187,9 @@
     "tests": [
       {
         "name": "capture",
-        "input": "(do (defun f (x) (lambda (y) (+ x y))) (f 1))",
-        "output": "",
-        "enabled": false
+        "input": "(do (set! outer 10) (set! f (lambda (x) (+ x outer))) (f 1))",
+        "output": "11.0",
+        "enabled": true
       }
     ]
   }
