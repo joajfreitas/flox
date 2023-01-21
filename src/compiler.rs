@@ -201,7 +201,7 @@ impl Compiler {
     fn emit_lambda(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         chunk.write_opcode(OpCode::OpClosure, scanner.get_line());
         let lambda = parse_lambda(scanner, self)?;
-        let idx = chunk.add_constant(Value::Obj(Box::new(lambda.clone())));
+        let idx = dbg!(chunk.add_constant(Value::Obj(Box::new(lambda.clone()))));
         chunk.write_constant(idx as u8, scanner.get_line());
 
         for upvalue in self.upvals.iter() {

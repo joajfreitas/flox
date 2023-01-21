@@ -216,7 +216,11 @@ impl VirtualMachine {
                     unimplemented!();
                 }
                 OpCode::OpClosure => {
-                    unimplemented!();
+                    dbg!(&self.stack);
+                    dbg!(&chunk);
+                    dbg!(chunk.get_constant(ip + 1));
+                    self.stack.push(chunk.get_constant(ip + 1).1.clone());
+                    self.set_ip(ip + 2);
                 }
                 OpCode::OpPrint => unary!(
                     |x| {
