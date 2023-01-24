@@ -1,12 +1,20 @@
 use std::fmt;
 
+use crate::chunk::value::Value;
 use crate::chunk::Chunk;
+use crate::compiler::UpValue;
 
-#[derive(Clone, PartialEq)]
+//#[derive(Debug, Clone)]
+//pub struct Upvalue {
+//    pub location: Value,
+//}
+
+#[derive(Clone)]
 pub struct Closure {
     pub params: Vec<String>,
     pub chunk: Chunk,
     pub name: String,
+    pub upvalues: Vec<UpValue>,
 }
 
 impl fmt::Debug for Closure {

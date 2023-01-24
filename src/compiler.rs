@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 use rand::Rng;
 use regex::{Captures, Regex};
+use std::fmt;
 
 use crate::chunk::closure::Closure;
 use crate::chunk::object::Object;
@@ -8,15 +9,21 @@ use crate::chunk::value::Value;
 use crate::chunk::{Chunk, OpCode};
 use crate::scanner::{Scanner, Token};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct UpValue {
     is_local: bool,
-    index: usize,
+    pub index: usize,
 }
 
 impl UpValue {
     pub fn new(is_local: bool, index: usize) -> UpValue {
         UpValue { is_local, index }
+    }
+}
+
+impl fmt::Debug for UpValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "(upvalue {})", self.index)
     }
 }
 
@@ -236,9 +243,10 @@ impl Compiler {
         Ok(())
     }
 
-    fn emit_get_upvalue(&mut self, chunk: &mut Chunk, atom: (Token, usize)) -> Result<(), String> {
-        let id = self.get_upvalue(&atom.0.atom()?).unwrap();
+    fn emit_get_upvalue(&mut self, chunk: &mut Chunk, atom: &(Token, usize)) -> Result<(), String> {
+        let id = dbg!(self.get_upvalue(&atom.0.atom()?).unwrap());
         self.add_upvalue(id, true);
+        dbg!(&self.upvals);
         chunk.write_opcode(OpCode::OpGetUpvalue, atom.1);
         chunk.write_constant(id as u8, atom.1);
         Ok(())
@@ -267,6 +275,17 @@ impl Compiler {
         }
 
         chunk.write_opcode(OpCode::OpCall, atom.1);
+        Ok(())
+    }
+
+    fn resolve_variable(&mut self, chunk: &mut Chunk, atom: &(Token, usize)) -> Result<(), String> {
+        dbg!(atom);
+        let local = dbg!(self.get_local(&atom.0.atom()?));
+        if local.is_some() {
+            self.emit_get_local(chunk, local.unwrap())?;
+        } else {
+            dbg!(self.emit_get_upvalue(chunk, dbg!(atom)))?;
+        }
         Ok(())
     }
 }
@@ -412,12 +431,19 @@ fn parse_lambda(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object
             .collect::<Vec<String>>(),
         chunk: Chunk::new(&name),
         name,
+        upvalues: Vec::new(),
     };
+
+    dbg!(&closure);
 
     for arg in args {
         compiler.set_local(arg.atom()?);
     }
     parse(scanner, &mut closure.chunk, &mut compiler)?;
+
+    for upval in compiler.upvals {
+        closure.upvalues.push(upval);
+    }
     closure.chunk.write_opcode(OpCode::OpRet, 1);
     Ok(Object::Function(Box::new(closure)))
 }
@@ -439,6 +465,7 @@ fn parse_defun(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object,
             .collect::<Vec<String>>(),
         chunk: Chunk::new(&name),
         name: name.clone(),
+        upvalues: Vec::new(),
     };
 
     for arg in args {
@@ -491,11 +518,8 @@ fn read_atom(
             } else if STR_RE.is_match(&atom.0.atom()?) {
                 compiler.emit_string(chunk, atom)
             } else if scanner.previous() != Some(Token::LeftParen) {
-                if let Some(id) = compiler.get_local(&atom.0.atom()?) {
-                    compiler.emit_get_local(chunk, id)
-                } else {
-                    compiler.emit_get_upvalue(chunk, atom)
-                }
+                //resolve variable
+                compiler.resolve_variable(chunk, &atom)
             } else {
                 compiler.emit_function_call(chunk, atom, scanner)
             }

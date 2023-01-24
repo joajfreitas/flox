@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
@@ -277,9 +278,20 @@ impl Chunk {
                 (format!("{:?}: {}\n", opcode, idx), 2)
             }
             OpCode::OpClosure => {
-                let (n, c) = self.get_constant(index + 1);
-                (format!("{:?} {}:'{}\n", opcode, n, c), 2)
-            },
+                let (n, closure) = self.get_constant(index + 1);
+                dbg!(closure.get_function().unwrap().upvalues.len());
+                let mut output: String = String::new();
+                let upvalues = closure.get_function().unwrap().upvalues;
+                let upvalues_fmt = upvalues
+                    .iter()
+                    .map(|upvalue| format!("{:?}", upvalue))
+                    .intersperse(",".to_string())
+                    .collect::<String>();
+                (
+                    format!("{:?} {}:'{} \n{}\n", opcode, n, closure, upvalues_fmt),
+                    2,
+                )
+            }
             _ => (format!("{:?}\n", opcode), 1),
         };
 

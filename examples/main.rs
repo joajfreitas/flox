@@ -43,6 +43,7 @@ fn repl(debug: bool) {
                 if debug {
                     println!("{}", chunk);
                 }
+
                 match vm.run(&mut chunk) {
                     Ok(v) => println!("{}", v),
                     Err(VMErr::RuntimeError(s)) => {

@@ -75,6 +75,7 @@ impl VirtualMachine {
                 params: Vec::new(),
                 chunk: chunk.clone(),
                 name: "main".to_string(),
+                upvalues: Vec::new(),
             }),
             ip: self.ip,
             stackpointer: 0,
@@ -210,15 +211,16 @@ impl VirtualMachine {
                     }
                 }
                 OpCode::OpGetUpvalue => {
-                    unimplemented!();
+                    let slot = chunk.get_constant_index(ip + 1);
+                    self.stack.push(Value::Number(
+                        self.frames[self.fp].function.upvalues[slot].index as i32 as f64,
+                    ));
+                    self.set_ip(ip + 2);
                 }
                 OpCode::OpSetUpvalue => {
                     unimplemented!();
                 }
                 OpCode::OpClosure => {
-                    dbg!(&self.stack);
-                    dbg!(&chunk);
-                    dbg!(chunk.get_constant(ip + 1));
                     self.stack.push(chunk.get_constant(ip + 1).1.clone());
                     self.set_ip(ip + 2);
                 }

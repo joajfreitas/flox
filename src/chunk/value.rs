@@ -194,7 +194,7 @@ impl fmt::Debug for Value {
             Value::Obj(obj) => match &**obj {
                 Object::Str(s) => write!(f, "{}", s),
                 Object::Function(closure) => {
-                    write!(f, "{}", closure.chunk)
+                    write!(f, "{:?}", closure)
                 }
             },
         }
