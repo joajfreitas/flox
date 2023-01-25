@@ -3,7 +3,6 @@ use rand::Rng;
 use regex::{Captures, Regex};
 use std::fmt;
 
-use crate::chunk::closure::Closure;
 use crate::chunk::object::{Function, Object};
 use crate::chunk::value::Value;
 use crate::chunk::{Chunk, OpCode};

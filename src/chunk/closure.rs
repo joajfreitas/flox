@@ -1,9 +1,4 @@
-use std::fmt;
-
 use crate::chunk::object::Function;
-use crate::chunk::value::Value;
-use crate::chunk::Chunk;
-use crate::compiler::UpValue;
 
 #[derive(Clone, Debug)]
 pub struct ObjUpvalue {
@@ -15,21 +10,6 @@ pub struct Closure {
     pub function: Box<Function>,
     pub upvalues: Vec<ObjUpvalue>,
 }
-
-//impl fmt::Debug for Closure {
-//    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//        write!(f, "({} (", self.name)?;
-//        for (i, param) in self.params.iter().enumerate() {
-//            if i + 1 == self.params.len() {
-//                write!(f, "{}", param)?;
-//            } else {
-//                write!(f, "{} ", param)?;
-//            }
-//        }
-//
-//        write!(f, "))")
-//    }
-//}
 
 #[cfg(test)]
 mod tests {

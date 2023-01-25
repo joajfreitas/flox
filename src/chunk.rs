@@ -1,6 +1,3 @@
-use itertools::Itertools;
-use std::cmp::Ordering;
-use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Write as _;
 
@@ -278,8 +275,7 @@ impl Chunk {
                 (format!("{:?}: {}\n", opcode, idx), 2)
             }
             OpCode::OpClosure => {
-                let (n, function) = self.get_constant(index + 1);
-                let mut output: String = String::new();
+                let (_, function) = self.get_constant(index + 1);
                 let function = function.get_function().unwrap();
                 //let upvalues_fmt = 0..function.upvalue_count upvalues
                 //    .iter()
