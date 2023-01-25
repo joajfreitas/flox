@@ -1,9 +1,10 @@
-use crate::chunk::closure::Closure;
+use crate::chunk::closure::{Closure, ObjUpvalue};
+use crate::chunk::object::{Function, Object};
 use crate::chunk::value::Value;
 use crate::chunk::{Chunk, OpCode};
 
 struct CallFrame {
-    function: Box<Closure>,
+    closure: Box<Closure>,
     ip: usize,
     stackpointer: usize,
 }
@@ -58,7 +59,7 @@ impl VirtualMachine {
     }
 
     pub fn get_chunk(&self) -> Chunk {
-        self.frames[self.fp].function.chunk.clone()
+        self.frames[self.fp].closure.function.chunk.clone()
     }
 
     pub fn get_ip(&self) -> usize {
@@ -71,10 +72,13 @@ impl VirtualMachine {
 
     pub fn run(&mut self, chunk: &mut Chunk) -> Result<Value, VMErr> {
         let frame = CallFrame {
-            function: Box::new(Closure {
-                params: Vec::new(),
-                chunk: chunk.clone(),
-                name: "main".to_string(),
+            closure: Box::new(Closure {
+                function: Box::new(Function {
+                    arity: 0,
+                    chunk: chunk.clone(),
+                    name: "main".to_string(),
+                    upvalue_count: 0,
+                }),
                 upvalues: Vec::new(),
             }),
             ip: self.ip,
@@ -111,7 +115,7 @@ impl VirtualMachine {
                         };
                     } else {
                         let ret = self.stack.pop().unwrap();
-                        for _i in 0..(*self.frames.last().unwrap().function).params.len() {
+                        for _i in 0..(*self.frames.last().unwrap().closure).function.arity {
                             self.stack.pop();
                         }
 
@@ -159,7 +163,7 @@ impl VirtualMachine {
                 }
                 OpCode::OpGetLocal => {
                     let slot = chunk.get_constant_index(ip + 1);
-                    let fp = dbg!(self.frames.last().unwrap().stackpointer);
+                    let fp = self.frames.last().unwrap().stackpointer;
                     let id = slot as usize + fp;
                     if id >= self.stack.len() {
                         return Err(VMErr::RuntimeError(String::from("Out of bound access")));
@@ -184,17 +188,16 @@ impl VirtualMachine {
                     self.set_ip(idx as usize);
                 }
                 OpCode::OpCall => {
-                    println!("function call");
                     let mut args: Vec<Value> = Vec::new();
                     loop {
-                        let v = dbg!(self.stack.pop().unwrap());
-                        if v.is_function() {
-                            let f = v.get_function().ok_or_else(|| {
-                                VMErr::RuntimeError("Failed to find function".to_string())
+                        let v = self.stack.pop().unwrap();
+                        if v.is_closure() {
+                            let f = v.get_closure().ok_or_else(|| {
+                                VMErr::RuntimeError("Failed to find closure".to_string())
                             })?;
 
                             let frame = CallFrame {
-                                function: f,
+                                closure: f,
                                 ip: 0,
                                 stackpointer: self.stack.len(),
                             };
@@ -212,17 +215,44 @@ impl VirtualMachine {
                 }
                 OpCode::OpGetUpvalue => {
                     let slot = chunk.get_constant_index(ip + 1);
-                    self.stack.push(Value::Number(
-                        self.frames[self.fp].function.upvalues[slot].index as i32 as f64,
-                    ));
+                    self.stack.push(
+                        self.stack[self
+                            .frames
+                            .get(self.fp)
+                            .expect("expected frame")
+                            .closure
+                            .upvalues
+                            .get(slot)
+                            .expect("expected slot")
+                            .location]
+                            .clone(),
+                    );
                     self.set_ip(ip + 2);
                 }
                 OpCode::OpSetUpvalue => {
                     unimplemented!();
                 }
                 OpCode::OpClosure => {
-                    self.stack.push(chunk.get_constant(ip + 1).1.clone());
-                    self.set_ip(ip + 2);
+                    let function = chunk.get_constant(ip + 1).1;
+
+                    let mut closure = Closure {
+                        function: function.get_function().unwrap(),
+                        upvalues: Vec::new(),
+                    };
+                    let function = function.get_function().unwrap();
+                    for i in 0..function.upvalue_count {
+                        let is_local = chunk.get_constant_index(ip + 2 * i + 2);
+                        let index = chunk.get_constant_index(ip + 2 * i + 3);
+
+                        if is_local == 1 {
+                            closure.upvalues.push(ObjUpvalue {
+                                location: self.frames[self.fp].stackpointer + index,
+                            });
+                        }
+                    }
+                    self.stack
+                        .push(Value::Obj(Box::new(Object::Closure(Box::new(closure)))));
+                    self.set_ip(ip + 2 + 2 * function.upvalue_count);
                 }
                 OpCode::OpPrint => unary!(
                     |x| {

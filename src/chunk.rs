@@ -126,7 +126,7 @@ impl Chunk {
         self.name.clone()
     }
 
-    pub fn get_code(&mut self) -> Vec<Element> {
+    pub fn get_code(&self) -> Vec<Element> {
         self.code.clone()
     }
 
@@ -255,7 +255,7 @@ impl Chunk {
             write!(s, "{}", self.get_line(index)).unwrap();
         }
 
-        let opcode = self.get_opcode(index)?;
+        let opcode = self.get_opcode(index).unwrap();
         let (ss, i) = match opcode {
             OpCode::OpConst => {
                 let (n, c) = self.get_constant(index + 1);
@@ -278,18 +278,21 @@ impl Chunk {
                 (format!("{:?}: {}\n", opcode, idx), 2)
             }
             OpCode::OpClosure => {
-                let (n, closure) = self.get_constant(index + 1);
-                dbg!(closure.get_function().unwrap().upvalues.len());
+                let (n, function) = self.get_constant(index + 1);
                 let mut output: String = String::new();
-                let upvalues = closure.get_function().unwrap().upvalues;
-                let upvalues_fmt = upvalues
-                    .iter()
-                    .map(|upvalue| format!("{:?}", upvalue))
-                    .intersperse(",".to_string())
-                    .collect::<String>();
+                let function = function.get_function().unwrap();
+                //let upvalues_fmt = 0..function.upvalue_count upvalues
+                //    .iter()
+                //    .map(|upvalue| format!("{:?}", upvalue))
+                //    .intersperse(",".to_string())
+                //    .collect::<String>();
+                //(
+                //    format!("{:?} {}:'{} \n{}\n", opcode, n, closure, upvalues_fmt),
+                //    dbg!(2 + 2 * upvalues.len()),
+                //)
                 (
-                    format!("{:?} {}:'{} \n{}\n", opcode, n, closure, upvalues_fmt),
-                    2,
+                    format!("{:?}\n", opcode),
+                    2 + 2 * dbg!(function.upvalue_count),
                 )
             }
             _ => (format!("{:?}\n", opcode), 1),

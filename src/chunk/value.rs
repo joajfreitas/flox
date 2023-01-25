@@ -3,7 +3,7 @@ use std::fmt;
 use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Not, Sub};
 
 use crate::chunk::closure::Closure;
-use crate::chunk::object::Object;
+use crate::chunk::object::{Function, Object};
 
 #[derive(Clone)]
 pub enum Value {
@@ -35,9 +35,16 @@ impl Value {
         }
     }
 
-    pub fn get_function(&self) -> Option<Box<Closure>> {
+    pub fn get_function(&self) -> Option<Box<Function>> {
         match self {
             Value::Obj(obj) => obj.get_function(),
+            _ => None,
+        }
+    }
+
+    pub fn get_closure(&self) -> Option<Box<Closure>> {
+        match self {
+            Value::Obj(obj) => obj.get_closure(),
             _ => None,
         }
     }
@@ -57,6 +64,13 @@ impl Value {
     pub fn is_function(&self) -> bool {
         match self {
             Value::Obj(f) => f.is_function(),
+            _ => false,
+        }
+    }
+
+    pub fn is_closure(&self) -> bool {
+        match self {
+            Value::Obj(f) => f.is_closure(),
             _ => false,
         }
     }
@@ -179,7 +193,8 @@ impl fmt::Display for Value {
             Value::Nil => write!(f, "nil"),
             Value::Obj(obj) => match &**obj {
                 Object::Str(s) => write!(f, "{:1}", s),
-                Object::Function(closure) => write!(f, "{:?}", closure),
+                Object::Function(function) => write!(f, "{:?}", function),
+                Object::Closure(closure) => write!(f, "{:?}", closure),
             },
         }
     }
@@ -193,7 +208,10 @@ impl fmt::Debug for Value {
             Value::Nil => write!(f, "nil"),
             Value::Obj(obj) => match &**obj {
                 Object::Str(s) => write!(f, "{}", s),
-                Object::Function(closure) => {
+                Object::Function(function) => {
+                    write!(f, "{:?}", function)
+                }
+                Object::Closure(closure) => {
                     write!(f, "{:?}", closure)
                 }
             },

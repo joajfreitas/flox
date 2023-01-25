@@ -1,9 +1,26 @@
 use crate::chunk::closure::Closure;
+use crate::chunk::Chunk;
+use std::fmt;
+
+#[derive(Clone)]
+pub struct Function {
+    pub name: String,
+    pub chunk: Chunk,
+    pub upvalue_count: usize,
+    pub arity: usize,
+}
+
+impl fmt::Debug for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({})", self.name)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Object {
     Str(String),
-    Function(Box<Closure>),
+    Function(Box<Function>),
+    Closure(Box<Closure>),
 }
 
 impl Object {
@@ -14,15 +31,26 @@ impl Object {
         }
     }
 
-    pub fn get_function(&self) -> Option<Box<Closure>> {
+    pub fn get_function(&self) -> Option<Box<Function>> {
         match self {
             Object::Function(f) => Some(f.clone()),
             _ => None,
         }
     }
 
+    pub fn get_closure(&self) -> Option<Box<Closure>> {
+        match self {
+            Object::Closure(f) => Some(f.clone()),
+            _ => None,
+        }
+    }
+
     pub fn is_function(&self) -> bool {
         matches!(self, Object::Function(_))
+    }
+
+    pub fn is_closure(&self) -> bool {
+        matches!(self, Object::Closure(_))
     }
 }
 
