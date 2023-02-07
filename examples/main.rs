@@ -6,7 +6,7 @@ use rustyline::Editor;
 use clap::Parser;
 
 use flox::chunk::Chunk;
-use flox::compiler::{compile, Compiler, Ctx};
+use flox::compiler::{compile, Compiler};
 use flox::vm::{VMErr, VirtualMachine};
 
 #[derive(Parser, Debug)]
@@ -23,7 +23,7 @@ fn repl(debug: bool) {
     let prompt: String = "user> ".to_string();
     let mut vm = VirtualMachine::new(debug);
 
-    let mut comp = Compiler::new(None, Ctx::TopLevel);
+    let mut comp = Compiler::new(None);
     let mut chunk = Chunk::new("test chunk");
 
     loop {
@@ -68,7 +68,7 @@ fn run_file(filename: String, debug: bool) {
     let source = fs::read_to_string(filename).unwrap();
 
     let mut chunk = Chunk::new("test chunk");
-    let mut comp = Compiler::new(None, Ctx::TopLevel);
+    let mut comp = Compiler::new(None);
     compile(&source, &mut chunk, &mut comp).unwrap();
     println!("{}", chunk);
     let mut vm = VirtualMachine::new(debug);

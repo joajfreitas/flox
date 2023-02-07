@@ -522,7 +522,7 @@ mod tests {
 
     #[fixture]
     fn compiler() -> Compiler {
-        Compiler::new(None, Ctx::TopLevel)
+        Compiler::new(None)
     }
 
     #[fixture]
@@ -558,7 +558,7 @@ mod tests {
 
     #[rstest]
     fn test_compile(mut compiler: Compiler, mut chunk: Chunk) {
-        compile("1", &mut chunk, &mut compiler);
+        compile("1", &mut chunk, &mut compiler).unwrap();
         assert_eq!(
             chunk.get_code(),
             vec![op!(OpCode::OpConst), constant!(0), op!(OpCode::OpRet)]

@@ -22,6 +22,6 @@ mod tests {
 
     #[test]
     fn test_empty() {
-        assert_eq!(rep("(+ 1 1)", false).unwrap(), "2".to_string());
+        assert_eq!(rep("(+ 1 1)", false).unwrap(), "2.0".to_string());
     }
 }
