@@ -99,10 +99,13 @@ impl VirtualMachine {
                 )));
             }
             if self.debug {
-                println!("stack: {:?}", self.stack);
-                println!("ip={}", ip);
                 let (s, _) = chunk.display_instruction(ip).unwrap();
-                print!("{}", s);
+                print!("===> {}", s);
+                println!("______stack______");
+                for stack in self.stack.iter() {
+                    println!("[ {} ]", stack);
+                }
+                println!("_________________");
             }
             let opcode = chunk.get_opcode(ip).unwrap();
             match opcode {
@@ -197,10 +200,14 @@ impl VirtualMachine {
                             })?;
 
                             let frame = CallFrame {
-                                closure: f,
+                                closure: f.clone(),
                                 ip: 0,
                                 stackpointer: self.stack.len(),
                             };
+
+                            println!("~~~~~~~~~~~~~~");
+                            println!("{}, ", f.function.chunk);
+                            println!("~~~~~~~~~~~~~~");
 
                             self.frames.push(frame);
                             self.fp += 1;
@@ -216,16 +223,20 @@ impl VirtualMachine {
                 OpCode::OpGetUpvalue => {
                     let slot = chunk.get_constant_index(ip + 1);
                     self.stack.push(
-                        self.stack[self
-                            .frames
-                            .get(self.fp)
-                            .expect("expected frame")
-                            .closure
-                            .upvalues
-                            .get(slot)
+                        dbg!(
+                            &self.stack[dbg!(
+                                &self
+                                    .frames
+                                    .get(self.fp)
+                                    .expect("expected frame")
+                                    .closure
+                                    .upvalues
+                            )
+                            .get(dbg!(slot))
                             .expect("expected slot")
                             .location]
-                            .clone(),
+                        )
+                        .clone(),
                     );
                     self.set_ip(ip + 2);
                 }
@@ -246,7 +257,7 @@ impl VirtualMachine {
 
                         if is_local == 1 {
                             closure.upvalues.push(ObjUpvalue {
-                                location: self.frames[self.fp].stackpointer + index,
+                                location: dbg!(self.frames[self.fp].stackpointer + index),
                             });
                         }
                     }

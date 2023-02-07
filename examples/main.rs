@@ -71,7 +71,7 @@ fn run_file(filename: String, debug: bool) {
     compile(&source, &mut chunk, &mut comp).unwrap();
     println!("{}", chunk);
     let mut vm = VirtualMachine::new(debug);
-    vm.run(&mut chunk).unwrap();
+    println!("{:?}", vm.run(&mut chunk));
 }
 
 fn main() {

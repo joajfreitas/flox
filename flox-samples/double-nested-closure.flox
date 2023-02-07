@@ -1,0 +1,8 @@
+(do
+  (set! f (lambda () (do
+    (set! outer 10)
+    (set! g (lambda () (do (print "hello") outer)))
+    (g)
+  )))
+  (print (f))
+)

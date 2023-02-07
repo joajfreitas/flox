@@ -66,13 +66,13 @@ impl Compiler {
     }
 
     fn get_upvalue(&self, name: &str) -> Option<usize> {
-        self.up.as_ref()?;
+        let up = self.up.as_ref()?;
 
-        if let Some(id) = self.up.as_ref().unwrap().get_local(name) {
+        if let Some(id) = dbg!(up.get_local(name)) {
             return Some(id);
         }
 
-        self.up.as_ref().unwrap().get_upvalue(name)
+        up.get_upvalue(name)
     }
 
     fn add_upvalue(&mut self, id: usize, is_local: bool) -> Option<usize> {
@@ -243,7 +243,7 @@ impl Compiler {
         let id = self.get_upvalue(&atom.0.atom()?).unwrap();
         self.add_upvalue(id, true);
         chunk.write_opcode(OpCode::OpGetUpvalue, atom.1);
-        chunk.write_constant(id as u8, atom.1);
+        chunk.write_constant(dbg!(id as u8), atom.1);
         Ok(())
     }
 

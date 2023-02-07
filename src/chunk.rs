@@ -286,10 +286,7 @@ impl Chunk {
                 //    format!("{:?} {}:'{} \n{}\n", opcode, n, closure, upvalues_fmt),
                 //    dbg!(2 + 2 * upvalues.len()),
                 //)
-                (
-                    format!("{:?}\n", opcode),
-                    2 + 2 * dbg!(function.upvalue_count),
-                )
+                (format!("{:?}\n", opcode), 2 + 2 * function.upvalue_count)
             }
             _ => (format!("{:?}\n", opcode), 1),
         };
