@@ -34,16 +34,14 @@ pub enum Ctx {
 
 #[derive(Clone)]
 pub struct Compiler {
-    context: Ctx,
     locals: Vec<String>,
     up: Option<Box<Compiler>>,
     upvals: Vec<UpValue>,
 }
 
 impl Compiler {
-    pub fn new(up: Option<Box<Compiler>>, context: Ctx) -> Compiler {
+    pub fn new(up: Option<Box<Compiler>>) -> Compiler {
         Compiler {
-            context,
             locals: Vec::new(),
             up,
             upvals: Vec::new(),
@@ -206,7 +204,7 @@ impl Compiler {
     fn emit_lambda(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         chunk.write_opcode(OpCode::OpClosure, scanner.get_line());
         let (lambda, lambda_compiler) = parse_lambda(scanner, self)?;
-        let idx = chunk.add_constant(Value::Obj(Box::new(lambda.clone())));
+        let idx = chunk.add_constant(Value::Obj(Box::new(lambda)));
         chunk.write_constant(idx as u8, scanner.get_line());
 
         for upval in lambda_compiler.upvals.iter() {
@@ -416,10 +414,7 @@ fn parse_lambda(
     let r: u32 = rng.gen();
     let name = format!("f{}", r);
 
-    let mut compiler = Compiler::new(
-        Some(Box::new((*compiler).clone())),
-        Ctx::FunctionScope(String::from("lambda")),
-    );
+    let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())));
 
     let mut function = Function {
         arity: args.len(),

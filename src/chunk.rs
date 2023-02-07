@@ -1,5 +1,3 @@
-use std::fmt::Write as _;
-//use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Write as _;
 
@@ -22,7 +20,7 @@ macro_rules! constant {
     }};
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpCode {
     OpRet,
     OpConst,
@@ -58,7 +56,7 @@ pub enum OpCode {
     OpPrint,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Element {
     OpCode(OpCode),
     Constant(u8),
@@ -81,7 +79,7 @@ impl Element {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Chunk {
     name: String,
     code: Vec<Element>,

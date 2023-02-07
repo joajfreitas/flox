@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
     LeftParen,
     RightParen,
@@ -9,9 +9,7 @@ impl Token {
     pub fn atom(&self) -> Result<String, String> {
         match self {
             Token::Atom(s) => Ok(s.clone()),
-            _ => {
-                return Err(format!("Expected atom, got: {:?}", self));
-            }
+            _ => Err(format!("Expected atom, got: {:?}", self)),
         }
     }
 }
@@ -64,7 +62,7 @@ impl Scanner {
 
     pub fn next_tokens(&self) -> Vec<String> {
         self.tokens[self.pos..]
-            .into_iter()
+            .iter()
             .map(|x| x.0.clone())
             .collect::<Vec<String>>()
     }
@@ -72,15 +70,11 @@ impl Scanner {
     pub fn get_line(&self) -> usize {
         self.current_line
     }
-
-    //pub fn next_tokens(&self) -> Vec<String> {
-    //    self.tokens[self.pos..].to_vec()
-    //}
 }
 
 fn tokenize(source: &str) -> Vec<(String, usize)> {
-    let source = source.replace("(", " ( ");
-    let source = source.replace(")", " ) ");
+    let source = source.replace('(', " ( ");
+    let source = source.replace(')', " ) ");
     let lines = source.split('\n');
     let mut tokens: Vec<(String, usize)> = Vec::new();
 
