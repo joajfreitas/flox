@@ -1,20 +1,36 @@
-use std::cmp::Ordering;
-use std::fmt::Write as _;
-//use std::collections::HashMap;
 use std::fmt;
-use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Not, Sub};
+use std::fmt::Write as _;
 
-#[derive(Debug, Clone)]
+pub mod closure;
+pub mod object;
+pub mod value;
+pub use value::Value;
+
+#[macro_export]
+macro_rules! op {
+    ($opcode:expr) => {{
+        Element::OpCode($opcode)
+    }};
+}
+
+#[macro_export]
+macro_rules! constant {
+    ($value:expr) => {{
+        Element::Constant($value)
+    }};
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpCode {
-    OpReturn,
-    OpConstant,
-    OpConstantLong,
+    OpRet,
+    OpConst,
+    OpConstLong,
     OpSetLocal,
     OpGetLocal,
     OpAdd,
-    OpSubtract,
-    OpMultiply,
-    OpDivide,
+    OpSub,
+    OpMul,
+    OpDiv,
     OpNil,
     OpTrue,
     OpFalse,
@@ -34,231 +50,13 @@ pub enum OpCode {
     OpJmpIfFalse,
     OpJmp,
     OpCall,
+    OpGetUpvalue,
+    OpSetUpvalue,
+    OpClosure,
+    OpPrint,
 }
 
-#[derive(Clone)]
-pub struct Closure {
-    pub params: Vec<String>,
-    pub chunk: Chunk,
-    pub name: String,
-}
-
-impl fmt::Debug for Closure {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "closure")
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Object {
-    Str(String),
-    Function(Box<Closure>),
-}
-
-impl Object {
-    fn get_str(&self) -> &str {
-        match self {
-            Object::Str(s) => s,
-            _ => panic!(),
-        }
-    }
-
-    fn get_function(&self) -> Box<Closure> {
-        match self {
-            Object::Function(f) => f.clone(),
-            _ => panic!(),
-        }
-    }
-
-    fn is_function(&self) -> bool {
-        matches!(self, Object::Function(_))
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Value {
-    Number(f64),
-    Bool(bool),
-    Nil,
-    Obj(Box<Object>),
-}
-
-impl Value {
-    pub fn get_number(&self) -> f64 {
-        match self {
-            Value::Number(f) => *f,
-            _ => panic!(),
-        }
-    }
-
-    pub fn get_bool(&self) -> bool {
-        match self {
-            Value::Bool(b) => *b,
-            _ => panic!(),
-        }
-    }
-
-    pub fn get_str(&self) -> &str {
-        match self {
-            Value::Obj(obj) => obj.get_str(),
-            _ => {
-                panic!()
-            }
-        }
-    }
-
-    pub fn get_function(&self) -> Box<Closure> {
-        match self {
-            Value::Obj(obj) => obj.get_function(),
-            _ => panic!(),
-        }
-    }
-
-    pub fn is_nil(&self) -> bool {
-        matches!(self, Value::Nil)
-    }
-
-    pub fn is_number(&self) -> bool {
-        matches!(self, Value::Number(_))
-    }
-
-    pub fn is_bool(&self) -> bool {
-        matches!(self, Value::Bool(_))
-    }
-
-    pub fn is_function(&self) -> bool {
-        match self {
-            Value::Obj(f) => f.is_function(),
-            _ => false,
-        }
-    }
-}
-
-impl PartialEq for Value {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
-            (Value::Number(b1), Value::Number(b2)) => b1 == b2,
-            _ => panic!(),
-        }
-    }
-}
-
-impl Eq for Value {}
-
-impl PartialOrd for Value {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match (self, other) {
-            (Value::Bool(b1), Value::Bool(b2)) => Some(b1.cmp(b2)),
-            (Value::Number(n1), Value::Number(n2)) => n1.partial_cmp(n2),
-            _ => panic!(),
-        }
-    }
-}
-
-impl Add for Value {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        match (&self, &other) {
-            (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 + n2),
-            _ => {
-                println!("add: {} {}", &self, &other);
-                panic!();
-            }
-        }
-    }
-}
-
-impl Sub for Value {
-    type Output = Self;
-
-    fn sub(self, other: Self) -> Self {
-        match (self, other) {
-            (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 - n2),
-            _ => panic!(),
-        }
-    }
-}
-
-impl Mul for Value {
-    type Output = Self;
-
-    fn mul(self, other: Self) -> Self {
-        match (self, other) {
-            (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 * n2),
-            _ => panic!(),
-        }
-    }
-}
-
-impl Div for Value {
-    type Output = Self;
-
-    fn div(self, other: Self) -> Self {
-        match (self, other) {
-            (Value::Number(n1), Value::Number(n2)) => Value::Number(n1 / n2),
-            _ => panic!(),
-        }
-    }
-}
-
-impl BitAnd for Value {
-    type Output = Self;
-    fn bitand(self, rhs: Self) -> Self {
-        match (self, rhs) {
-            (Value::Bool(b1), Value::Bool(b2)) => Value::Bool(b1 & b2),
-            _ => panic!(),
-        }
-    }
-}
-
-impl BitOr for Value {
-    type Output = Self;
-    fn bitor(self, rhs: Self) -> Self {
-        match (self, rhs) {
-            (Value::Bool(b1), Value::Bool(b2)) => Value::Bool(b1 | b2),
-            _ => panic!(),
-        }
-    }
-}
-
-impl BitXor for Value {
-    type Output = Self;
-    fn bitxor(self, rhs: Self) -> Self {
-        match (self, rhs) {
-            (Value::Bool(b1), Value::Bool(b2)) => Value::Bool(b1 ^ b2),
-            _ => panic!(),
-        }
-    }
-}
-
-impl Not for Value {
-    type Output = Self;
-
-    fn not(self) -> Self::Output {
-        match self {
-            Value::Bool(b) => Value::Bool(!b),
-            _ => panic!(),
-        }
-    }
-}
-
-impl fmt::Display for Value {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Value::Number(value) => write!(f, "{}", value),
-            Value::Bool(value) => write!(f, "{:1}", value),
-            Value::Nil => write!(f, "nil"),
-            Value::Obj(obj) => match &**obj {
-                Object::Str(s) => write!(f, "{:1}", s),
-                Object::Function(_) => write!(f, "function"),
-            },
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Element {
     OpCode(OpCode),
     Constant(u8),
@@ -271,9 +69,17 @@ impl Element {
             _ => None,
         }
     }
+
+    #[allow(dead_code)]
+    fn get_opcode(&self) -> Option<OpCode> {
+        match self {
+            Element::OpCode(op) => Some(*op),
+            _ => None,
+        }
+    }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Chunk {
     name: String,
     code: Vec<Element>,
@@ -284,12 +90,13 @@ pub struct Chunk {
 
 impl fmt::Display for Chunk {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "{:?}", self.constants)?;
-        writeln!(f, "{:?}", self.code)?;
         writeln!(f, "==={}===", &self.name)?;
         let mut pc: usize = 0;
         loop {
-            let (s, inc) = self.display_instruction(pc).unwrap();
+            let (s, inc) = match self.display_instruction(pc) {
+                Some((s, inc)) => (s, inc),
+                None => return Ok(()),
+            };
             pc += inc;
             write!(f, "{}", s)?;
             if pc >= self.code.len() {
@@ -318,12 +125,16 @@ impl Chunk {
         self.name.clone()
     }
 
-    pub fn get_code(&mut self) -> Vec<Element> {
+    pub fn get_code(&self) -> Vec<Element> {
         self.code.clone()
     }
 
-    pub fn get_current_index(&self) -> usize {
-        self.code.len() - 1
+    pub fn get_current_index(&self) -> Result<usize, String> {
+        if !self.code.is_empty() {
+            Ok(self.code.len() - 1)
+        } else {
+            Err("get_current_index: no code to be found".to_string())
+        }
     }
 
     pub fn write(&mut self, element: Element, line: usize) {
@@ -347,6 +158,18 @@ impl Chunk {
         self.write(Element::Constant((constant >> 16 & 0xFF) as u8), line);
         self.write(Element::Constant((constant >> 8 & 0xFF) as u8), line);
         self.write(Element::Constant((constant & 0xFF) as u8), line);
+    }
+
+    pub fn len(&self) -> usize {
+        self.code.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn is_ip_in_range(&self, ip: usize) -> bool {
+        self.code.len() > ip
     }
 
     fn annotate_line(&mut self, line: usize) {
@@ -380,18 +203,6 @@ impl Chunk {
         self.constants.len() - 1
     }
 
-    pub fn len(&self) -> usize {
-        self.code.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.code.len() == 0
-    }
-
-    pub fn is_ip_in_range(&self, ip: usize) -> bool {
-        self.code.len() > ip
-    }
-
     pub fn get_opcode(&self, index: usize) -> Option<&OpCode> {
         let op = self.code.get(index)?;
 
@@ -399,14 +210,14 @@ impl Chunk {
             Element::OpCode(opcode) => Some(opcode),
             _ => {
                 println!("Expected opcode got: {:?}", self.code[index]);
-                panic!();
+                None
             }
         }
     }
 
-    pub fn get_constant_index(&self, index: usize) -> u8 {
+    pub fn get_constant_index(&self, index: usize) -> usize {
         match &self.code[index] {
-            Element::Constant(i) => *i,
+            Element::Constant(i) => *i as usize,
             _ => {
                 println!("Expected Constant got: {:?}", self.code[index]);
                 panic!();
@@ -415,7 +226,7 @@ impl Chunk {
     }
 
     pub fn get_constant(&self, index: usize) -> (usize, &Value) {
-        let idx: usize = self.get_constant_index(index) as usize;
+        let idx: usize = self.get_constant_index(index);
         (idx, &self.constants[idx])
     }
 
@@ -443,21 +254,21 @@ impl Chunk {
             write!(s, "{}", self.get_line(index)).unwrap();
         }
 
-        let opcode = self.get_opcode(index)?;
+        let opcode = self.get_opcode(index).unwrap();
         let (ss, i) = match opcode {
-            OpCode::OpConstant => {
+            OpCode::OpConst => {
                 let (n, c) = self.get_constant(index + 1);
                 (format!("{:?} {}:'{}'\n", opcode, n, c), 2)
             }
-            OpCode::OpConstantLong => {
+            OpCode::OpConstLong => {
                 let value = self.get_constant_long(index + 1).unwrap();
                 (format!("{:?} '{}'\n", opcode, value), 4)
             }
-            OpCode::OpSetLocal => {
-                let (n, c) = self.get_constant(index + 1);
-                (format!("{:?} {}: '{}\n", opcode, n, c), 2)
+            OpCode::OpSetLocal | OpCode::OpSetUpvalue => {
+                let n = self.get_constant_index(index + 1);
+                (format!("{:?} {}\n", opcode, n), 2)
             }
-            OpCode::OpGetLocal => {
+            OpCode::OpGetLocal | OpCode::OpGetUpvalue => {
                 let n = self.get_constant_index(index + 1);
                 (format!("{:?} {}\n", opcode, n), 2)
             }
@@ -465,10 +276,146 @@ impl Chunk {
                 let idx = self.get_constant_index(index + 1);
                 (format!("{:?}: {}\n", opcode, idx), 2)
             }
+            OpCode::OpClosure => {
+                let (_, function) = self.get_constant(index + 1);
+                let function = function.get_function().unwrap();
+                //let upvalues_fmt = 0..function.upvalue_count upvalues
+                //    .iter()
+                //    .map(|upvalue| format!("{:?}", upvalue))
+                //    .intersperse(",".to_string())
+                //    .collect::<String>();
+                //(
+                //    format!("{:?} {}:'{} \n{}\n", opcode, n, closure, upvalues_fmt),
+                //    dbg!(2 + 2 * upvalues.len()),
+                //)
+                (format!("{:?}\n", opcode), 2 + 2 * function.upvalue_count)
+            }
             _ => (format!("{:?}\n", opcode), 1),
         };
 
         s.push_str(&ss);
         Some((s, i))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_element_get_constant() {
+        assert_eq!(Element::Constant(1).get_constant(), Some(1));
+        assert_eq!(Element::OpCode(OpCode::OpNil).get_constant(), None);
+    }
+
+    #[test]
+    fn test_element_get_opcode() {
+        assert_eq!(Element::Constant(1).get_opcode(), None);
+        assert_eq!(
+            Element::OpCode(OpCode::OpNil).get_opcode(),
+            Some(OpCode::OpNil)
+        );
+    }
+
+    #[test]
+    fn test_chunk_get_name() {
+        let chunk = Chunk::new("test_chunk");
+        assert_eq!(chunk.get_name(), "test_chunk");
+    }
+
+    #[test]
+    fn test_chunk_get_code() {
+        let chunk = Chunk::new("test_chunk");
+        assert_eq!(chunk.get_code(), vec![]);
+        assert_eq!(chunk.len(), 0);
+    }
+
+    #[test]
+    fn test_chunk_get_current_index() {
+        let chunk = Chunk::new("test_chunk");
+        assert_eq!(chunk.get_current_index().ok(), None);
+    }
+
+    #[test]
+    fn test_chunk_write() {
+        let mut chunk = Chunk::new("test_chunk");
+        chunk.write(Element::OpCode(OpCode::OpNil), 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(0));
+        chunk.write(Element::Constant(0), 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(1));
+    }
+
+    #[test]
+    fn test_chunk_write_opcode() {
+        let mut chunk = Chunk::new("test_chunk");
+        chunk.write_opcode(OpCode::OpNil, 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(0));
+        chunk.write_opcode(OpCode::OpNil, 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(1));
+    }
+
+    #[test]
+    fn test_chunk_write_constant() {
+        let mut chunk = Chunk::new("test_chunk");
+        chunk.write_constant(0, 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(0));
+        chunk.write_constant(1, 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(1));
+    }
+
+    #[test]
+    fn test_chunk_rewrite_constant() {
+        let mut chunk = Chunk::new("test_chunk");
+        let idx = chunk.add_constant(Value::Number(2.0));
+        chunk.write_constant(idx as u8, 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(0));
+
+        chunk.rewrite_constant(idx, 1);
+        assert_eq!(chunk.get_constant_index(idx), 1);
+    }
+
+    #[test]
+    fn test_chunk_get_opcode() {
+        let chunk = Chunk::new("test chunk");
+        chunk.get_opcode(0);
+    }
+
+    #[test]
+    fn test_chunk_write_constant_long() {
+        let mut chunk = Chunk::new("test_chunk");
+        chunk.write_constant_long(0, 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(2));
+        chunk.write_constant_long(1, 0);
+        assert_eq!(chunk.get_current_index().ok(), Some(5));
+    }
+
+    //#[test]
+    //fn test_chunk_display() {
+    //    let mut chunk = Chunk::new("test_chunk");
+    //    assert_eq!(format!("{}", chunk), "===test_chunk===\n");
+
+    //    chunk.write_opcode(OpCode::OpNil, 0);
+    //    assert_eq!(
+    //        format!("{}", chunk),
+    //        "===test_chunk===\n0000 0 OpNil\n================"
+    //    );
+    //}
+
+    #[test]
+    fn test_is_ip_in_range() {
+        let chunk = Chunk::new("test_chunk");
+        assert_eq!(chunk.is_ip_in_range(1), false);
+    }
+
+    #[test]
+    fn test_annotate_line() {
+        let mut chunk = Chunk::new("test_chunk");
+        chunk.annotate_line(1);
+        chunk.annotate_line(0);
+        chunk.annotate_line(0);
+
+        assert_eq!(*chunk.get_line(0), 1_usize);
+        assert_eq!(*chunk.get_line(1), 0_usize);
+        assert_eq!(*chunk.get_line(2), 0_usize);
     }
 }
