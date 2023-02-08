@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Do",
+    "tests": [
+      {
+        "name": "Do case 1",
+        "input": "(do (+ 1 2) (- 3 2))",
+        "output": "1.0"
+      },
+      {
+        "name": "Do case 1",
+        "input": "(do \"ola\" \"adeus\")",
+        "output": "adeus"
+      }
+    ]
+  }
+]
