@@ -14,7 +14,7 @@ pub struct Closure {
 
 impl fmt::Debug for Closure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(fnt {})", self.function.name)
+        write!(f, "(fn {})", self.function.name)
     }
 }
 
@@ -39,6 +39,6 @@ mod tests {
     fn test_chunk_debug() {
         let closure = fixture_closure();
         let result = format!("{:?}", closure);
-        assert_eq!(result, "Closure { function: (test_closure), upvalues: [] }");
+        assert_eq!(result, "(fn test_closure)");
     }
 }
