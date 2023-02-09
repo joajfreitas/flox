@@ -447,7 +447,7 @@ fn parse_defun(
     let mut function = Function {
         arity: args.len(),
         chunk: Chunk::new(&name),
-        name: name,
+        name,
         upvalue_count: 0,
     };
 

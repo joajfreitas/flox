@@ -14,7 +14,7 @@ pub struct Closure {
 
 impl fmt::Debug for Closure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(fn {})", self.function.name)
+        write!(f, "(fnt {})", self.function.name)
     }
 }
 
