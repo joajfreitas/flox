@@ -1,8 +1,8 @@
 (do
-  (set! f (lambda () (do
+  (defun f () (do
     (set! outer 10)
-    (set! g (lambda () (do (print "hello") outer)))
+    (defun g () (do (print "hello") outer))
     (g)
-  )))
+  ))
   (print (f))
 )

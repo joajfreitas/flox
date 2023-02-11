@@ -13,7 +13,7 @@ use flox::rep;
 struct Args {
     #[clap(short, long)]
     debug: bool,
-    file: String,
+    dir: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -29,6 +29,12 @@ struct Test {
     name: String,
     enabled: Option<bool>,
     err: Option<String>,
+}
+
+struct TestResult {
+    warnings: i32,
+    errors: i32,
+    tests: i32,
 }
 
 fn validate_ok(output: String, test: &Test) -> (bool, bool) {
@@ -89,11 +95,8 @@ fn validate(output: Result<String, String>, test: &Test) -> (bool, bool) {
     }
 }
 
-fn main() -> Result<(), std::io::Error> {
-    let args = Args::parse();
-    println!("{:?}", args);
-
-    let source = fs::read_to_string(args.file).unwrap();
+fn run_test_file(filename: &std::path::PathBuf, debug: &bool) -> TestResult {
+    let source = fs::read_to_string(filename).unwrap();
     let suites: Vec<Suite> = serde_json::from_str(&source).unwrap();
 
     let mut error_count = 0;
@@ -104,7 +107,7 @@ fn main() -> Result<(), std::io::Error> {
         println!("- {}:", suite.name);
         for test in suite.tests {
             test_count += 1;
-            let output = rep(&test.input, args.debug);
+            let output = rep(&test.input, *debug);
             let (warn_inc, error_inc) = validate(output, &test);
             if warn_inc {
                 warning_count += 1;
@@ -115,10 +118,29 @@ fn main() -> Result<(), std::io::Error> {
         }
     }
 
-    println!("\n⚠️  warnings: {}/{}", warning_count, test_count);
-    println!("❌ errors: {}/{}", error_count, test_count);
+    TestResult {
+        warnings: warning_count,
+        errors: error_count,
+        tests: test_count,
+    }
+}
 
-    if error_count > 0 {
+fn main() -> Result<(), std::io::Error> {
+    let args = Args::parse();
+    let results = fs::read_dir(args.dir.clone())
+        .unwrap()
+        .map(|path| run_test_file(&path.unwrap().path(), &args.debug))
+        .reduce(|x, y| TestResult {
+            warnings: x.warnings + y.warnings,
+            errors: x.errors + y.errors,
+            tests: x.tests + y.tests,
+        })
+        .unwrap();
+
+    println!("\n⚠️  warnings: {}/{}", results.warnings, results.tests);
+    println!("❌ errors: {}/{}", results.errors, results.tests);
+
+    if results.errors > 0 {
         Err(Error::new(ErrorKind::Other, "Tests failed!"))
     } else {
         Ok(())

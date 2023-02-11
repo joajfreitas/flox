@@ -184,22 +184,23 @@ impl Compiler {
         Ok(())
     }
 
-    //fn emit_defun(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
-    //    chunk.write_opcode(OpCode::OpConst, scanner.get_line());
-    //    let lambda = parse_defun(scanner, self)?;
-    //    let idx = chunk.add_constant(Value::Obj(Box::new(lambda.clone())));
-    //    chunk.write_constant(idx as u8, scanner.get_line());
-    //    let idx = self.set_local(dbg!(
-    //        lambda.get_function().ok_or("Failed to find function")?.name
-    //    ));
-    //    chunk.write_opcode(OpCode::OpSetLocal, scanner.get_line());
-    //    chunk.write_constant(idx as u8, scanner.get_line());
+    fn emit_defun(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
+        chunk.write_opcode(OpCode::OpClosure, scanner.get_line());
+        let (lambda, lambda_compiler) = parse_defun(scanner, self)?;
+        let idx = chunk.add_constant(Value::Obj(Box::new(lambda.clone())));
+        chunk.write_constant(idx as u8, scanner.get_line());
 
-    //    println!("defun: {}", chunk);
-    //    println!("function: {}", lambda.get_function().unwrap().chunk);
+        for upval in lambda_compiler.upvals.iter() {
+            chunk.write_constant(upval.is_local as u8, scanner.get_line());
+            chunk.write_constant(upval.index as u8, scanner.get_line());
+        }
 
-    //    Ok(())
-    //}
+        let idx = self.set_local(lambda.get_function().ok_or("Failed to find function")?.name);
+        chunk.write_opcode(OpCode::OpSetLocal, scanner.get_line());
+        chunk.write_constant(idx as u8, scanner.get_line());
+
+        Ok(())
+    }
 
     fn emit_lambda(&mut self, chunk: &mut Chunk, scanner: &mut Scanner) -> Result<(), String> {
         chunk.write_opcode(OpCode::OpClosure, scanner.get_line());
@@ -433,34 +434,32 @@ fn parse_lambda(
     Ok((Object::Function(Box::new(function)), compiler))
 }
 
-//fn parse_defun(scanner: &mut Scanner, compiler: &mut Compiler) -> Result<Object, String> {
-//    assert!(scanner.scan().unwrap().0 == Token::Atom("defun".to_string()));
-//    let name = scanner.scan().unwrap().0.atom().unwrap();
-//    let args = read_shallow_list(scanner).unwrap();
-//
-//    let mut compiler = Compiler::new(
-//        Some(Box::new((*compiler).clone())),
-//        Ctx::FunctionScope(name.clone()),
-//    );
-//
-//    let mut closure = Closure {
-//        params: args
-//            .iter()
-//            .map(|x| x.atom().unwrap())
-//            .collect::<Vec<String>>(),
-//        chunk: Chunk::new(&name),
-//        name: name.clone(),
-//        upvalues: Vec::new(),
-//    };
-//
-//    for arg in args {
-//        compiler.set_local(arg.atom()?);
-//    }
-//    parse(scanner, &mut closure.chunk, &mut compiler)?;
-//    closure.chunk.write_opcode(OpCode::OpRet, 1);
-//
-//    Ok(Object::Function(Box::new(closure)))
-//}
+fn parse_defun(
+    scanner: &mut Scanner,
+    compiler: &mut Compiler,
+) -> Result<(Object, Compiler), String> {
+    assert!(scanner.scan().unwrap().0 == Token::Atom("defun".to_string()));
+    let name = scanner.scan().unwrap().0.atom().unwrap();
+    let args = read_shallow_list(scanner).unwrap();
+
+    let mut compiler = Compiler::new(Some(Box::new((*compiler).clone())));
+
+    let mut function = Function {
+        arity: args.len(),
+        chunk: Chunk::new(&name),
+        name,
+        upvalue_count: 0,
+    };
+
+    for arg in args {
+        compiler.set_local(arg.atom()?);
+    }
+    parse(scanner, &mut function.chunk, &mut compiler)?;
+
+    function.chunk.write_opcode(OpCode::OpRet, 1);
+    function.upvalue_count = compiler.upvals.len();
+    Ok((Object::Function(Box::new(function)), compiler))
+}
 
 fn read_atom(
     atom: (Token, usize),
@@ -496,7 +495,7 @@ fn read_atom(
         "not" => compiler.emit_not(chunk, atom, scanner),
         "do" => compiler.emit_do(chunk, scanner),
         "lambda" => compiler.emit_lambda(chunk, scanner),
-        //"defun" => compiler.emit_defun(chunk, scanner),
+        "defun" => compiler.emit_defun(chunk, scanner),
         _ => {
             if INT_RE.is_match(&atom.0.atom()?) {
                 compiler.emit_integer(chunk, atom)
