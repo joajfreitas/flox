@@ -1,0 +1,18 @@
+[
+  {
+    "name": "defun",
+    "tests": [
+      {
+        "name": "defun-simple",
+        "input": "(do (defun f (x) (+ x 1)) (f 0))",
+        "output": "1.0"
+      },
+      {
+        "name": "recursion",
+        "input": "((do (defun f (x) (if (= x 0) 0 (+ x (f (- x 1))))) (f 2)))",
+        "output": "3.0",
+        "enabled": false
+      }
+    ]
+  }
+]
