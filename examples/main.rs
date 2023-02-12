@@ -62,6 +62,8 @@ fn repl(debug: bool) -> Result<()> {
             }
         }
     }
+
+    Ok(())
 }
 
 fn run_file(filename: String, debug: bool) {
@@ -80,6 +82,6 @@ fn main() {
     if args.file.is_some() {
         run_file(args.file.unwrap(), args.debug);
     } else {
-        repl(args.debug);
+        repl(args.debug).unwrap();
     }
 }
