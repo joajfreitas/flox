@@ -1,7 +1,7 @@
 use std::fs;
 
 use rustyline::error::ReadlineError;
-use rustyline::Editor;
+use rustyline::{Editor, Result};
 
 use clap::Parser;
 
@@ -17,9 +17,11 @@ struct Args {
     file: Option<String>,
 }
 
-fn repl(debug: bool) {
-    let mut rl = Editor::<()>::new();
-    rl.load_history(".flang-history").unwrap();
+fn repl(debug: bool) -> Result<()> {
+    let mut rl = Editor::<()>::new()?;
+    if rl.load_history(".flang-history").is_err() {
+        println!("No previous history.");
+    }
     let prompt: String = "user> ".to_string();
     let mut vm = VirtualMachine::new(debug);
 
@@ -54,11 +56,9 @@ fn repl(debug: bool) {
                     _ => continue,
                 };
             }
-            Err(ReadlineError::Interrupted) => break,
-            Err(ReadlineError::Eof) => break,
             Err(err) => {
                 println!("Error: {:?}", err);
-                break;
+                return Err(err);
             }
         }
     }
