@@ -1,4 +1,6 @@
-use crate::scanner::Scanner;
+use crate::scanner::{Scanner, Token};
+use lazy_static::lazy_static;
+use regex::{Captures, Regex};
 
 #[derive(Debug, PartialEq)]
 pub enum Ast {
@@ -11,7 +13,7 @@ pub enum Ast {
     List(Vec<Ast>),
 }
 
-struct Parser {
+pub struct Parser {
     scanner: Scanner,
 }
 
@@ -29,15 +31,60 @@ impl Parser {
         };
 
         match &token.0 {
-            Token::LeftParen => read_seq(scanner, chunk, compiler)?,
-            Token::RightParen => return Err("unexpected ')'".to_string()),
-            Token::Atom(_) => {
-                scanner.scan().unwrap();
-                read_atom(token, scanner, chunk, compiler);
-            }
+            Token::LeftParen => self.parse_list(),
+            Token::RightParen => Err("unexpected ')'".to_string()),
+            Token::Atom(_) => self.parse_atom(),
         }
-        Ok(Ast::Int(1))
     }
+
+    fn parse_list(&mut self) -> Result<Ast, String> {
+        let _ = self.scanner.scan();
+
+        let mut list: Vec<Ast> = Vec::new();
+
+        while let Some(token) = self.scanner.peek() {
+            let ast = match token.0 {
+                Token::Atom(_) => self.parse_atom(),
+                Token::LeftParen => self.parse(),
+                Token::RightParen => {
+                    self.scanner.scan();
+                    break;
+                }
+            }?;
+            list.push(ast);
+            println!("{:?}", token);
+        }
+
+        Ok(Ast::List(list))
+    }
+    fn parse_atom(&mut self) -> Result<Ast, String> {
+        lazy_static! {
+            static ref INT_RE: Regex = Regex::new(r"^-?[0-9]+$").unwrap();
+            static ref STR_RE: Regex = Regex::new(r#""(?:\\.|[^\\"])*""#).unwrap();
+        }
+
+        let atom = self.scanner.scan().unwrap();
+        let atom = match &atom.0.atom()? as &str {
+            "nil" => Ast::Nil,
+            "true" => Ast::Bool(true),
+            "false" => Ast::Bool(false),
+            _ => {
+                if INT_RE.is_match(&atom.0.atom()?) {
+                    Ast::Int(atom.0.atom()?.parse().unwrap())
+                } else {
+                    Ast::Nil
+                }
+            }
+        };
+
+        Ok(atom)
+    }
+}
+
+pub fn parse(source: &str) -> Result<Ast, String> {
+    let mut scanner = Scanner::new(source);
+    let mut parser = Parser::new(&scanner);
+    parser.parse()
 }
 
 #[cfg(test)]
