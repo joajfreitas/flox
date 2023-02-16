@@ -1,6 +1,6 @@
 use crate::scanner::{Scanner, Token};
 use lazy_static::lazy_static;
-use regex::{Captures, Regex};
+use regex::Regex;
 
 #[derive(Debug, PartialEq)]
 pub enum Ast {
@@ -82,7 +82,7 @@ impl Parser {
 }
 
 pub fn parse(source: &str) -> Result<Ast, String> {
-    let mut scanner = Scanner::new(source);
+    let scanner = Scanner::new(source);
     let mut parser = Parser::new(&scanner);
     parser.parse()
 }
