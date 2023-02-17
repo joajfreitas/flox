@@ -205,6 +205,8 @@ impl P2 {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::scanner::Scanner;
+    use crate::stage1::P1;
     use rstest::rstest;
 
     #[test]
@@ -224,6 +226,20 @@ mod test {
                 S2::int(1, &SourceInfo::default()),
                 &SourceInfo::default()
             ))
+        );
+    }
+
+    #[rstest]
+    #[case("hello", Ok(S2::sym("hello", &SourceInfo::default())))]
+    #[case("\"hello\"", Ok(S2::str("hello", &SourceInfo::default())))]
+    #[case("1", Ok(S2::int(1, &SourceInfo::default())))]
+    #[case("true", Ok(S2::bool(true, &SourceInfo::default())))]
+    #[case("false", Ok(S2::bool(false, &SourceInfo::default())))]
+    #[case("(1 2 3)", Ok(S2::list(vec![S2::int(1, &SourceInfo::default()), S2::int(2, &SourceInfo::default()), S2::int(3, &SourceInfo::default())], &SourceInfo::default())))]
+    fn test_full_pipeline(#[case] input: &str, #[case] stage2: Result<S2, String>) {
+        assert_eq!(
+            P2::parse(&P1::parse(&mut Scanner::new(input)).unwrap()),
+            stage2
         );
     }
 }

@@ -187,7 +187,7 @@ impl P1 {
     }
 }
 
-pub fn ast_parse(source: &str) -> Result<S1, String> {
+pub fn parse(source: &str) -> Result<S1, String> {
     P1::parse(&mut Scanner::new(source))
 }
 
@@ -203,28 +203,28 @@ mod test {
 
     #[test]
     fn test_parse() {
-        assert_eq!(ast_parse("1").unwrap(), S1::int(1))
+        assert_eq!(parse("1").unwrap(), S1::int(1))
     }
 
     #[test]
     fn test_nil() {
-        assert_eq!(ast_parse("nil"), Ok(S1::nil()))
+        assert_eq!(parse("nil"), Ok(S1::nil()))
     }
 
     #[test]
     fn test_true() {
-        assert_eq!(ast_parse("true"), Ok(S1::boolean(true)))
+        assert_eq!(parse("true"), Ok(S1::boolean(true)))
     }
 
     #[test]
     fn test_false() {
-        assert_eq!(ast_parse("false"), Ok(S1::boolean(false)))
+        assert_eq!(parse("false"), Ok(S1::boolean(false)))
     }
 
     #[test]
     fn test_function_call() {
         assert_eq!(
-            ast_parse("(+ 1 2)"),
+            parse("(+ 1 2)"),
             Ok(S1::list(vec![S1::sym("+"), S1::int(1), S1::int(2)]))
         )
     }
@@ -233,6 +233,6 @@ mod test {
     #[case("\"hello\"", "hello")]
     //#[case(r#""\"hello\"""#, "\"hello\"")]
     fn test_str(#[case] string1: &str, #[case] string2: &str) {
-        assert_eq!(ast_parse(string1), Ok(S1::str(string2)))
+        assert_eq!(parse(string1), Ok(S1::str(string2)))
     }
 }
