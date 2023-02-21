@@ -1,5 +1,17 @@
+use std::fs;
+
 use rustyline::error::ReadlineError;
 use rustyline::{Editor, Result};
+
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[clap(about, version, author)]
+struct Args {
+    #[clap(short, long)]
+    debug: bool,
+    file: Option<String>,
+}
 
 use flox::scanner::Scanner;
 use flox::stage1::P1;
@@ -24,7 +36,9 @@ fn repl() -> Result<()> {
                     }
                     Ok(ast) => match P2::parse(&ast) {
                         Err(err) => println!("err: {}", err),
-                        Ok(s1) => println!("{}", s1),
+                        Ok(s2) => {
+                            println!("{}", s2);
+                        }
                     },
                 };
             }
@@ -40,6 +54,20 @@ fn repl() -> Result<()> {
     Ok(())
 }
 
+fn run_file(filename: String, _debug: bool) {
+    let source = fs::read_to_string(filename).unwrap();
+
+    let mut scanner = Scanner::new(&source);
+    let s1 = P1::parse(&mut scanner).unwrap();
+    let s2 = P2::parse(&s1).unwrap();
+    println!("{}", s2);
+}
+
 fn main() {
-    repl().unwrap();
+    let args = Args::parse();
+    if args.file.is_some() {
+        run_file(args.file.unwrap(), args.debug);
+    } else {
+        repl().unwrap();
+    }
 }

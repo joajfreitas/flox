@@ -7,9 +7,10 @@ use crate::source_info::SourceInfo;
 use itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum T1 {
     Nil,
     Bool(bool),
@@ -46,29 +47,28 @@ impl fmt::Display for T1 {
     }
 }
 
-#[derive(Debug)]
-#[allow(dead_code)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct S1 {
-    pub ast_type: T1,
+    pub t1: T1,
     pub source_info: SourceInfo,
 }
 
 impl PartialEq for S1 {
     fn eq(&self, other: &Self) -> bool {
-        self.ast_type == other.ast_type
+        self.t1 == other.t1
     }
 }
 
 impl fmt::Display for S1 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.ast_type)
+        write!(f, "{}", self.t1)
     }
 }
 
 impl S1 {
-    fn new(ast_type: T1) -> S1 {
+    fn new(t1: T1) -> S1 {
         S1 {
-            ast_type,
+            t1,
             source_info: SourceInfo::default(),
         }
     }
@@ -97,25 +97,26 @@ impl S1 {
         S1::new(T1::Str(string.to_string()))
     }
 
-    pub fn get_sym(&self) -> String {
-        match &self.ast_type {
-            T1::Sym(s) => s.to_string(),
-            _ => panic!(),
+    pub fn get_sym(&self) -> Option<String> {
+        match &self.t1 {
+            T1::Sym(s) => Some(s.to_string()),
+            _ => None,
         }
     }
 
-    pub fn get_list(&self) -> &Vec<S1> {
-        match &self.ast_type {
-            T1::List(l) => l.clone(),
-            _ => panic!(),
+    pub fn get_list(&self) -> Option<Vec<S1>> {
+        match &self.t1 {
+            T1::List(l) => Some(l.clone()),
+            _ => None,
         }
     }
 
     pub fn is_sym(&self) -> bool {
-        match self.ast_type {
-            T1::Sym(_) => true,
-            _ => false,
-        }
+        matches!(self.t1, T1::Sym(_))
+    }
+
+    pub fn is_list(&self) -> bool {
+        matches!(self.t1, T1::List(_))
     }
 }
 
@@ -173,9 +174,9 @@ impl P1 {
             "true" => S1::boolean(true),
             "false" => S1::boolean(false),
             _ => {
-                if INT_RE.is_match(&atom) {
+                if INT_RE.is_match(atom) {
                     S1::int(atom.parse().unwrap())
-                } else if STR_RE.is_match(&atom) {
+                } else if STR_RE.is_match(atom) {
                     S1::str(STR_RE.captures(atom).unwrap().get(1).unwrap().as_str())
                 } else {
                     S1::sym(atom)

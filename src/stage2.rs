@@ -1,8 +1,9 @@
 use crate::source_info::SourceInfo;
 use crate::stage1::{S1, T1};
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 enum T2 {
     Nil,
     Bool(bool),
@@ -31,17 +32,12 @@ impl fmt::Display for T2 {
                 T2::Float(f) => format!("{}", f),
                 T2::Str(s) => s.to_string(),
                 T2::Sym(s) => s.to_string(),
-                T2::List(ls) =>
-                    "(".to_string()
-                        + &itertools::intersperse(
-                            ls.iter().map(|l| format!("{}", l)),
-                            " ".to_string()
-                        )
-                        .collect::<String>()
-                        + ")",
-                T2::Do(_) => "do".to_string(),
-                T2::Lambda(_, _) => "lambda".to_string(),
-                T2::Defun(_, _, _) => "defun".to_string(),
+                T2::List(ls) => format!("{}", S2s(ls.clone())),
+                T2::Do(xs) => format!("({})", S2s(xs.clone())),
+                T2::Lambda(args, body) =>
+                    format!("( lambda {} {} )", S2s(args.clone()), dbg!(body)),
+                T2::Defun(name, args, body) =>
+                    format!("( defun {} {} {} )", name, S2s(args.clone()), dbg!(body)),
                 T2::If(_, _, _) => "if".to_string(),
                 T2::Set(_, _) => "set".to_string(),
             }
@@ -49,28 +45,44 @@ impl fmt::Display for T2 {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct S2 {
-    t1: T2,
+    t2: T2,
     source_info: SourceInfo,
 }
 
 impl PartialEq for S2 {
     fn eq(&self, other: &Self) -> bool {
-        self.t1 == other.t1
+        self.t2 == other.t2
     }
 }
 
 impl fmt::Display for S2 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.t1)
+        write!(f, "{}", self.t2)
+    }
+}
+
+struct S2s(pub Vec<S2>);
+
+impl fmt::Display for S2s {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "( {} )",
+            self.0
+                .iter()
+                .map(|x| format!("{}", x))
+                .intersperse(" ".to_string())
+                .collect::<String>()
+        )
     }
 }
 
 impl S2 {
-    fn new(t1: &T2, source_info: &SourceInfo) -> S2 {
+    fn new(t2: &T2, source_info: &SourceInfo) -> S2 {
         S2 {
-            t1: t1.clone(),
+            t2: t2.clone(),
             source_info: source_info.clone(),
         }
     }
@@ -106,13 +118,6 @@ impl S2 {
     pub fn lambda(args: Vec<S2>, source: S2, source_info: &SourceInfo) -> S2 {
         S2::new(&T2::Lambda(args, Box::new(source)), source_info)
     }
-
-    fn get_sym(&self) -> String {
-        match &self.t1 {
-            T2::Sym(s) => s.to_string(),
-            _ => panic!(),
-        }
-    }
 }
 
 pub struct P2 {}
@@ -122,82 +127,110 @@ impl P2 {}
 impl P2 {
     pub fn parse(input: &S1) -> Result<S2, String> {
         Ok(S2::new(
-            &match &input.ast_type {
+            &match &input.t1 {
                 T1::Nil => T2::Nil,
                 T1::Bool(b) => T2::Bool(*b),
                 T1::Int(i) => T2::Int(*i),
                 T1::Float(f) => T2::Float(*f),
                 T1::Str(s) => T2::Str(s.to_string()),
                 T1::Sym(s) => T2::Sym(s.to_string()),
-                T1::List(_) => P2::parse_list(&input)?.t1,
-            }
-            .clone(),
+                T1::List(_) => P2::parse_list(input)?.t2,
+            },
             &input.source_info,
         ))
     }
 
     fn parse_list(input: &S1) -> Result<S2, String> {
-        let list = input.get_list();
+        let input = input.get_list().ok_or("Cannot get list")?;
 
-        let t1 = if !list[0].is_sym() {
-            T2::List(
-                input
-                    .get_list()
+        Ok(match &input[0].get_sym().as_deref() {
+            Some("do") => P2::parse_do(&input)?,
+            Some("if") => P2::parse_if(&input)?,
+            Some("lambda") => P2::parse_lambda(&input)?,
+            Some("defun") => P2::parse_defun(&input)?,
+            Some("set!") => P2::parse_set(&input)?,
+            Some(&_) | None => S2::new(
+                &T2::List(
+                    input
+                        .iter()
+                        .map(|node| P2::parse(node).unwrap())
+                        .collect::<Vec<S2>>(),
+                ),
+                &input[0].source_info,
+            ),
+        })
+    }
+
+    fn parse_do(input: &[S1]) -> Result<S2, String> {
+        Ok(S2::new(
+            &T2::Do(
+                input[1..]
                     .iter()
-                    .map(|node| P2::parse(node).unwrap())
+                    .map(|x| P2::parse(x).unwrap())
                     .collect::<Vec<S2>>(),
-            )
-        } else {
-            match &list[0].get_sym() as &str {
-                "do" => P2::parse_do(input)?.t1,
-                "if" => P2::parse_if(input)?.t1,
-                "lambda" => P2::parse_lambda(input)?.t1,
-                "defun" => P2::parse_defun(input)?.t1,
-                _ => panic!(),
-            }
-        };
-        Ok(S2::new(&t1, &SourceInfo::default()))
+            ),
+            &input[0].source_info,
+        ))
     }
 
-    fn parse_do(input: &S1) -> Result<S2, String> {
-        Ok(S2::new(&T2::Do(vec![]), &SourceInfo::default()))
-    }
-
-    fn parse_if(input: &S1) -> Result<S2, String> {
+    fn parse_if(input: &[S1]) -> Result<S2, String> {
+        let stmt = &input[0];
+        let pred = &input[1];
+        let cond_true = &input[2];
+        let cond_false = &input[3];
         Ok(S2::new(
             &T2::If(
-                Box::new(S2::int(1, &SourceInfo::default())),
-                Box::new(S2::int(1, &SourceInfo::default())),
-                Box::new(S2::int(1, &SourceInfo::default())),
+                Box::new(P2::parse(pred)?),
+                Box::new(P2::parse(cond_true)?),
+                Box::new(P2::parse(cond_false)?),
             ),
-            &SourceInfo::default(),
+            &stmt.source_info,
         ))
     }
 
-    fn parse_lambda(input: &S1) -> Result<S2, String> {
+    fn parse_lambda(input: &[S1]) -> Result<S2, String> {
+        let lambda = &input[0];
+        let args = &input[1];
+        let body = &input[2];
         Ok(S2::new(
-            &T2::Lambda(vec![], Box::new(S2::int(1, &SourceInfo::default()))),
-            &SourceInfo::default(),
+            &T2::Lambda(
+                args.get_list()
+                    .ok_or("Expected a list")?
+                    .iter()
+                    .map(|x| P2::parse(x).unwrap())
+                    .collect::<Vec<S2>>(),
+                Box::new(P2::parse(body)?),
+            ),
+            &lambda.source_info,
         ))
     }
 
-    fn parse_defun(input: &S1) -> Result<S2, String> {
+    fn parse_defun(input: &[S1]) -> Result<S2, String> {
+        let defun = &input[0];
+        let name = &input[1];
+        let args = &input[2];
+        let body = &input[3];
         Ok(S2::new(
             &T2::Defun(
-                Box::new(S2::sym("f", &SourceInfo::default())),
-                vec![],
-                Box::new(S2::int(1, &SourceInfo::default())),
+                Box::new(P2::parse(name)?),
+                args.get_list()
+                    .ok_or("Expected a list")?
+                    .iter()
+                    .map(|x| P2::parse(x).unwrap())
+                    .collect::<Vec<S2>>(),
+                Box::new(P2::parse(body)?),
             ),
-            &SourceInfo::default(),
+            &defun.source_info,
         ))
     }
-    fn parse_set(input: &S1) -> Result<S2, String> {
+    fn parse_set(input: &[S1]) -> Result<S2, String> {
+        let set = &input[0];
+        let lvalue = &input[1];
+        let rvalue = &input[2];
+
         Ok(S2::new(
-            &T2::Set(
-                Box::new(S2::sym("test", &SourceInfo::default())),
-                Box::new(S2::int(1, &SourceInfo::default())),
-            ),
-            &SourceInfo::default(),
+            &T2::Set(Box::new(P2::parse(lvalue)?), Box::new(P2::parse(rvalue)?)),
+            &set.source_info,
         ))
     }
 }

@@ -1,12 +1,7 @@
-#![allow(dead_code)]
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SourceInfo {
     line: usize,
     col: usize,
-}
-
-impl Default for SourceInfo {
-    fn default() -> Self {
-        SourceInfo { line: 0, col: 0 }
-    }
 }
