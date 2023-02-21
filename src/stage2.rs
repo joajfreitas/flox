@@ -253,9 +253,13 @@ mod test {
     #[test]
     fn test_parse_lambda() {
         assert_eq!(
-            P2::parse(&S1::list(vec![S1::sym("lambda")])),
+            P2::parse(&S1::list(vec![
+                S1::sym("lambda"),
+                S1::list(vec![S1::sym("x")]),
+                S1::int(1)
+            ])),
             Ok(S2::lambda(
-                vec![],
+                vec![S2::sym("x", &SourceInfo::default())],
                 S2::int(1, &SourceInfo::default()),
                 &SourceInfo::default()
             ))
