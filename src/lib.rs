@@ -2,6 +2,7 @@
 
 pub mod chunk;
 pub mod compiler;
+pub mod interpreter;
 pub mod ir;
 pub mod scanner;
 pub mod source_info;

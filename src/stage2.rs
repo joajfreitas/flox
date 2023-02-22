@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-enum T2 {
+pub enum T2 {
     Nil,
     Bool(bool),
     Int(i64),
@@ -34,10 +34,9 @@ impl fmt::Display for T2 {
                 T2::Sym(s) => s.to_string(),
                 T2::List(ls) => format!("{}", S2s(ls.clone())),
                 T2::Do(xs) => format!("({})", S2s(xs.clone())),
-                T2::Lambda(args, body) =>
-                    format!("( lambda {} {} )", S2s(args.clone()), dbg!(body)),
+                T2::Lambda(args, body) => format!("( lambda {} {} )", S2s(args.clone()), body),
                 T2::Defun(name, args, body) =>
-                    format!("( defun {} {} {} )", name, S2s(args.clone()), dbg!(body)),
+                    format!("( defun {} {} {} )", name, S2s(args.clone()), body),
                 T2::If(_, _, _) => "if".to_string(),
                 T2::Set(_, _) => "set".to_string(),
             }
@@ -47,8 +46,8 @@ impl fmt::Display for T2 {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct S2 {
-    t2: T2,
-    source_info: SourceInfo,
+    pub t2: T2,
+    pub source_info: SourceInfo,
 }
 
 impl PartialEq for S2 {
@@ -117,6 +116,13 @@ impl S2 {
 
     pub fn lambda(args: Vec<S2>, source: S2, source_info: &SourceInfo) -> S2 {
         S2::new(&T2::Lambda(args, Box::new(source)), source_info)
+    }
+
+    pub fn get_sym(&self) -> Option<String> {
+        match &self.t2 {
+            T2::Sym(s) => Some(s.clone()),
+            _ => None,
+        }
     }
 }
 
