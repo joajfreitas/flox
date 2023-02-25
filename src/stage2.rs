@@ -33,12 +33,12 @@ impl fmt::Display for T2 {
                 T2::Str(s) => s.to_string(),
                 T2::Sym(s) => s.to_string(),
                 T2::List(ls) => format!("{}", S2s(ls.clone())),
-                T2::Do(xs) => format!("({})", S2s(xs.clone())),
+                T2::Do(xs) => format!("(do {})", S2s(xs.clone())),
                 T2::Lambda(args, body) => format!("( lambda {} {} )", S2s(args.clone()), body),
                 T2::Defun(name, args, body) =>
                     format!("( defun {} {} {} )", name, S2s(args.clone()), body),
                 T2::If(_, _, _) => "if".to_string(),
-                T2::Set(_, _) => "set".to_string(),
+                T2::Set(lvalue, rvalue) => format!("set {} {}", lvalue, rvalue),
             }
         )
     }
@@ -84,6 +84,10 @@ impl S2 {
             t2: t2.clone(),
             source_info: source_info.clone(),
         }
+    }
+
+    pub fn get_type(&self) -> &T2 {
+        &self.t2
     }
 
     pub fn nil(source_info: &SourceInfo) -> S2 {

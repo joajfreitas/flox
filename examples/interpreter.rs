@@ -13,7 +13,7 @@ struct Args {
     file: Option<String>,
 }
 
-use flox::interpreter::Interpreter;
+use flox::interpreter::{S3, T3};
 use flox::scanner::Scanner;
 use flox::stage1::P1;
 use flox::stage2::P2;
@@ -33,7 +33,8 @@ fn repl() -> Result<()> {
                 let mut scanner = Scanner::new(&line);
                 let stage1 = P1::parse(&mut scanner).unwrap();
                 let stage2 = P2::parse(&stage1).unwrap();
-                println!("{:?}", Interpreter::interpret(stage2).unwrap());
+                let s3 = &S3::parse(&stage2).unwrap();
+                println!("{}", S3::eval(s3).unwrap());
             }
             Err(ReadlineError::Interrupted) => break,
             Err(ReadlineError::Eof) => break,
