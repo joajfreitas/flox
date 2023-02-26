@@ -49,6 +49,7 @@ impl fmt::Display for T3 {
                 T3::If(_, _, _) => "if".to_string(),
                 T3::Set(_, _) => "set".to_string(),
                 T3::T3Func { .. } => "(func)".to_string(),
+                T3::Func(_) => "(func)".to_string(),
                 _ => panic!(),
             }
         )
@@ -258,16 +259,20 @@ impl S3 {
                 T3::T3Func {
                     eval,
                     ast,
-                    env,
+                    env: menv,
                     params,
                     ..
                 } => {
                     let env = env_bind(
-                        Some(env.clone()),
+                        Some(menv.clone()),
                         params.clone(),
-                        l[1..].iter().map(|x| x.clone()).collect::<Vec<S3>>(),
-                    );
-                    eval(ast.clone(), env.unwrap())
+                        l[1..]
+                            .iter()
+                            .map(|arg| S3::eval_internal(arg, env).unwrap())
+                            .collect::<Vec<S3>>(),
+                    )
+                    .unwrap();
+                    eval(ast.clone(), env)
                 }
                 T3::Func(closure) => closure(
                     l[1..]
@@ -286,7 +291,8 @@ impl S3 {
             Ok(value) => value,
             Err(_) => match &env.outer {
                 Some(env) => S3::eval_sym(sym, env)?,
-                None => sym.clone(),
+                //None => sym.clone(),
+                None => Err("failed to find symbol")?,
             },
         })
     }
@@ -316,12 +322,7 @@ impl S3 {
                 eval: eval,
                 ast: Arc::new(body.clone()),
                 env: env.clone(),
-                params: Arc::new(S3::list(
-                    args.iter()
-                        .map(|x| S3::eval_internal(x, &env).unwrap())
-                        .collect::<Vec<S3>>(),
-                    &args[0].source_info,
-                )),
+                params: Arc::new(S3::list(args.clone(), &SourceInfo::default())),
             },
             &SourceInfo::default(),
         ))
@@ -346,6 +347,24 @@ fn env_new(outer: Option<Env>) -> Env {
 fn env_set(env: &Env, key: String, value: S3) -> Result<(), String> {
     env.data.write().unwrap().insert(key, value);
     Ok(())
+}
+
+fn env_keys(env: &Env) -> Vec<(String, String)> {
+    let mut outer_keys = if env.outer.is_some() {
+        env_keys(&env.outer.clone().unwrap())
+    } else {
+        vec![]
+    };
+    outer_keys.append(
+        &mut env
+            .data
+            .read()
+            .unwrap()
+            .iter()
+            .map(|(key, value)| (key.to_string(), format!("{}", value)))
+            .collect::<Vec<(String, String)>>(),
+    );
+    outer_keys
 }
 
 fn env_get(env: &Env, key: String) -> Result<S3, String> {
