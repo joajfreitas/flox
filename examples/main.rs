@@ -1,6 +1,5 @@
 use std::fs;
 
-use rustyline::error::ReadlineError;
 use rustyline::{Editor, Result};
 
 use clap::Parser;
@@ -80,6 +79,6 @@ fn main() {
     if args.file.is_some() {
         run_file(args.file.unwrap(), args.debug);
     } else {
-        repl(args.debug);
+        repl(args.debug).unwrap();
     }
 }

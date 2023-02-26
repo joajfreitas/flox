@@ -1,7 +1,13 @@
+#![feature(iter_intersperse)]
+
 pub mod chunk;
 pub mod compiler;
+pub mod interpreter;
 pub mod ir;
 pub mod scanner;
+pub mod source_info;
+pub mod stage1;
+pub mod stage2;
 pub mod vm;
 
 pub fn rep(input: &str, debug: bool) -> Result<String, String> {

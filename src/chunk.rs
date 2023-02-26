@@ -235,7 +235,7 @@ impl Chunk {
         let c2 = self.code[index + 1].get_constant()?;
         let c3 = self.code[index + 2].get_constant()?;
         let index: usize = ((c1 as usize) << 16) + ((c2 as usize) << 8) + c3 as usize;
-        Some(&self.constants[index as usize])
+        Some(&self.constants[index])
     }
 
     pub fn display_instruction(&self, index: usize) -> Option<(String, usize)> {

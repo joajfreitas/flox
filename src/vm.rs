@@ -118,7 +118,7 @@ impl VirtualMachine {
                         };
                     } else {
                         let ret = self.stack.pop().unwrap();
-                        for _i in 0..(*self.frames.last().unwrap().closure).function.arity {
+                        for _i in 0..self.frames.last().unwrap().closure.function.arity {
                             self.stack.pop();
                         }
 
@@ -161,13 +161,13 @@ impl VirtualMachine {
                 OpCode::OpSetLocal => {
                     let value = self.stack.last().unwrap();
                     let slot = chunk.get_constant_index(ip + 1);
-                    self.stack[slot as usize] = value.clone();
+                    self.stack[slot] = value.clone();
                     self.set_ip(ip + 2);
                 }
                 OpCode::OpGetLocal => {
                     let slot = chunk.get_constant_index(ip + 1);
                     let fp = self.frames.last().unwrap().stackpointer;
-                    let id = slot as usize + fp;
+                    let id = slot + fp;
                     if id >= self.stack.len() {
                         return Err(VMErr::RuntimeError(String::from("Out of bound access")));
                     }
@@ -181,14 +181,14 @@ impl VirtualMachine {
                         .get_bool()
                         .ok_or_else(|| VMErr::RuntimeError("Failed to get boolean".to_string()))?
                     {
-                        self.set_ip(idx as usize);
+                        self.set_ip(idx);
                     } else {
                         self.set_ip(ip + 2);
                     }
                 }
                 OpCode::OpJmp => {
                     let idx = chunk.get_constant_index(ip + 1);
-                    self.set_ip(idx as usize);
+                    self.set_ip(idx);
                 }
                 OpCode::OpCall => {
                     let mut args: Vec<Value> = Vec::new();
