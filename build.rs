@@ -47,7 +47,7 @@ fn write_test(test_file: &mut File, directory: &DirEntry) {
 
     for suite in suites {
         for test in suite.tests {
-            if test.enabled.is_some() && test.enabled.unwrap() == false {
+            if test.enabled.is_some() && !test.enabled.unwrap() {
                 continue;
             }
             let test_name = format!("{}_{}_{}", suite.name, test.name, test.id,);
