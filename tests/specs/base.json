@@ -1,29 +1,34 @@
 [
   {
-    "name": "Constants",
+    "name": "constants",
     "tests": [
       {
-        "name": "Numeric constant",
+        "id": 0,
+        "name": "numeric_constant",
         "input": "1",
         "output": "1.0"
       },
       {
-        "name": "Nil",
+        "id": 1,
+        "name": "nil",
         "input": "nil",
         "output": "nil"
       },
       {
-        "name": "True",
+        "id": 2,
+        "name": "true",
         "input": "true",
         "output": "true"
       },
       {
-        "name": "False",
+        "id": 3,
+        "name": "false",
         "input": "false",
         "output": "false"
       },
       {
-        "name": "String constant",
+        "id": 4,
+        "name": "string_constant",
         "input": "\"1\"",
         "output": "1",
         "enabled": false

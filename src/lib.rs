@@ -10,7 +10,7 @@ pub fn rep(input: &str, debug: bool) -> Result<String, String> {
     compiler::compile(input, &mut chk, &mut comp)?;
 
     let mut vm = vm::VirtualMachine::new(debug);
-    match vm.run(&mut chk) {
+    match vm.run(&chk) {
         Ok(v) => Ok(format!("{}", v)),
         Err(err) => Err(format!("{:?}", err)),
     }

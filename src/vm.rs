@@ -72,7 +72,7 @@ impl VirtualMachine {
         self.frames[self.fp].ip = ip;
     }
 
-    pub fn run(&mut self, chunk: &mut Chunk) -> Result<Value, VMErr> {
+    pub fn run(&mut self, chunk: &Chunk) -> Result<Value, VMErr> {
         let frame = CallFrame {
             closure: Box::new(Closure {
                 function: Box::new(Function {

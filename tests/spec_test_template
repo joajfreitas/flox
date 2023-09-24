@@ -1,0 +1,10 @@
+#[test]
+fn {name}() {{
+    assert_eq!(rep(r#"{input}"#, false).unwrap(), "{output}");
+    //let input = include_str!("{path}/input-data");
+    //let expected_output = include_str!("{path}/output-data");
+
+    //let actual_output = functionality_under_test(input);
+
+    //assert_eq!(expected_output, actual_output);
+}}

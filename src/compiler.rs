@@ -409,7 +409,7 @@ fn read_shallow_list(scanner: &mut Scanner) -> Option<Vec<Token>> {
 
 fn parse_lambda(
     scanner: &mut Scanner,
-    compiler: &mut Compiler,
+    compiler: &Compiler,
 ) -> Result<(Object, Compiler), String> {
     assert!(scanner.scan().unwrap().0 == Token::Atom("lambda".to_string()));
     let args = read_shallow_list(scanner).unwrap();
@@ -438,7 +438,7 @@ fn parse_lambda(
 
 fn parse_defun(
     scanner: &mut Scanner,
-    compiler: &mut Compiler,
+    compiler: &Compiler,
 ) -> Result<(Object, Compiler), String> {
     assert!(scanner.scan().unwrap().0 == Token::Atom("defun".to_string()));
     let name = scanner.scan().unwrap().0.atom().unwrap();
