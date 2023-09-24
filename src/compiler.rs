@@ -239,7 +239,9 @@ impl Compiler {
     }
 
     fn emit_get_upvalue(&mut self, chunk: &mut Chunk, atom: &(Token, usize)) -> Result<(), String> {
-        let id = self.get_upvalue(&atom.0.atom()?).unwrap();
+        let id = self
+            .get_upvalue(&atom.0.atom()?)
+            .ok_or(format!("Cannot find {:?}", atom.0))?;
         self.add_upvalue(id, true);
         chunk.write_opcode(OpCode::OpGetUpvalue, atom.1);
         chunk.write_constant(dbg!(id as u8), atom.1);
