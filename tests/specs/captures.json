@@ -1,8 +1,9 @@
 [
   {
-    "name": "Captures",
+    "name": "captures",
     "tests": [
       {
+        "id": 0,
         "name": "capture",
         "input": "(do (set! outer 10) (set! f (lambda (x) (+ x outer))) (f 1))",
         "output": "11.0",

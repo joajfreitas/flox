@@ -1,7 +1,7 @@
 use std::fs;
 
-use rustyline::{Editor, Result};
 use rustyline::error::ReadlineError;
+use rustyline::{DefaultEditor, Result};
 
 use clap::Parser;
 
@@ -18,7 +18,7 @@ struct Args {
 }
 
 fn repl(debug: bool) -> Result<()> {
-    let mut rl = Editor::<()>::new()?;
+    let mut rl = DefaultEditor::new()?;
     let _ = rl.load_history(".flang-history").is_err();
     let prompt: String = "user> ".to_string();
     let mut vm = VirtualMachine::new(debug);
@@ -31,7 +31,7 @@ fn repl(debug: bool) -> Result<()> {
 
         match line {
             Ok(line) => {
-                rl.add_history_entry(line.as_str());
+                let _ = rl.add_history_entry(line.as_str());
                 rl.save_history(".flox-history").unwrap();
 
                 if let Err(err) = compile(&line, &mut chunk, &mut comp) {
@@ -75,13 +75,11 @@ fn main() {
         run_file(args.file.unwrap(), args.debug);
     } else {
         match repl(args.debug) {
-            Ok(_) => {},
-            Err(err) => {
-                match err {
-                    ReadlineError::Eof => {},
-                    _ => {
-                        println!("Err: {}", err);
-                    },
+            Ok(_) => {}
+            Err(err) => match err {
+                ReadlineError::Eof => {}
+                _ => {
+                    println!("Err: {}", err);
                 }
             },
         }

@@ -1,89 +1,106 @@
 [
   {
-    "name": "Base functions",
+    "name": "base_functions",
     "tests": [
       {
-        "name": "Add",
+        "id": 0,
+        "name": "add",
         "input": "(+ 1 1)",
         "output": "2.0"
       },
       {
-        "name": "Sub",
+        "id": 1,
+        "name": "sub",
         "input": "(- 1 1)",
         "output": "0.0"
       },
       {
-        "name": "Mul",
+        "id": 2,
+        "name": "mul",
         "input": "(* 1 1)",
         "output": "1.0"
       },
       {
-        "name": "Div",
+        "id": 3,
+        "name": "div",
         "input": "(/ 1 1)",
         "output": "1.0"
       },
       {
-        "name": "Not",
+        "id": 4,
+        "name": "not",
         "input": "(not true)",
         "output": "false"
       },
       {
-        "name": "Eq",
+        "id": 5,
+        "name": "eq",
         "input": "(= 1 1)",
         "output": "true"
       },
       {
-        "name": "Ne",
+        "id": 6,
+        "name": "ne",
         "input": "(!= 1 1)",
         "output": "false"
       },
       {
-        "name": "Bt",
+        "id": 7,
+        "name": "bt",
         "input": "(> 2 1)",
         "output": "true"
       },
       {
-        "name": "Lt",
+        "id": 8,
+        "name": "lt",
         "input": "(< 0 1)",
         "output": "true"
       },
       {
-        "name": "Be",
+        "id": 9,
+        "name": "be",
         "input": "(>= 2 1)",
         "output": "true"
       },
       {
-        "name": "Le",
+        "id": 10,
+        "name": "le",
         "input": "(<= 0 1)",
         "output": "true"
       },
       {
-        "name": "And",
+        "id": 11,
+        "name": "and",
         "input": "(and true false)",
         "output": "false"
       },
       {
-        "name": "Nand",
+        "id": 12,
+        "name": "nand",
         "input": "(nand false false)",
         "output": "true"
       },
       {
-        "name": "Or",
+        "id": 13,
+        "name": "or",
         "input": "(or true false)",
         "output": "true"
       },
       {
-        "name": "Nor",
+        "id": 14,
+        "name": "nor",
         "input": "(nor true false)",
         "output": "false"
       },
       {
-        "name": "Xor",
+        "id": 15,
+        "name": "xor",
         "input": "(xor true false)",
         "output": "true"
       },
       {
-        "name": "Xnor",
+        "id": 16,
+        "name": "xnor",
         "input": "(xnor true false)",
         "output": "false"
       }
