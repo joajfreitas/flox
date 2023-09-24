@@ -1,6 +1,7 @@
 use std::fs;
 
 use rustyline::{Editor, Result};
+use rustyline::error::ReadlineError;
 
 use clap::Parser;
 
@@ -18,9 +19,7 @@ struct Args {
 
 fn repl(debug: bool) -> Result<()> {
     let mut rl = Editor::<()>::new()?;
-    if rl.load_history(".flang-history").is_err() {
-        println!("No previous history.");
-    }
+    let _ = rl.load_history(".flang-history").is_err();
     let prompt: String = "user> ".to_string();
     let mut vm = VirtualMachine::new(debug);
 
@@ -33,7 +32,7 @@ fn repl(debug: bool) -> Result<()> {
         match line {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
-                rl.save_history(".flang-history").unwrap();
+                rl.save_history(".flox-history").unwrap();
 
                 if let Err(err) = compile(&line, &mut chunk, &mut comp) {
                     println!("{}", err);
@@ -53,7 +52,6 @@ fn repl(debug: bool) -> Result<()> {
                 };
             }
             Err(err) => {
-                println!("Error: {:?}", err);
                 return Err(err);
             }
         }
@@ -76,6 +74,16 @@ fn main() {
     if args.file.is_some() {
         run_file(args.file.unwrap(), args.debug);
     } else {
-        repl(args.debug).unwrap();
+        match repl(args.debug) {
+            Ok(_) => {},
+            Err(err) => {
+                match err {
+                    ReadlineError::Eof => {},
+                    _ => {
+                        println!("Err: {}", err);
+                    },
+                }
+            },
+        }
     }
 }
