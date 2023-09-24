@@ -32,10 +32,9 @@ impl IrScanner {
 
 fn _tokenize(source: &str) -> Vec<String> {
     lazy_static! {
-        static ref RE: regex::Regex = Regex::new(
-            r###"[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)"###
-        )
-        .unwrap();
+        static ref RE: regex::Regex =
+            Regex::new(r#"[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)"#)
+                .unwrap();
     }
 
     let mut tokens: Vec<String> = Vec::new();

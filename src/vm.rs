@@ -25,7 +25,7 @@ pub enum VMErr {
 
 macro_rules! nullary {
     ($fn:expr, $self:expr, $ip:expr) => {{
-        $self.stack.push($fn());
+        $self.stack.push($fn);
         $self.set_ip($ip + 1);
     }};
 }
@@ -33,7 +33,8 @@ macro_rules! nullary {
 macro_rules! unary {
     ($fn:expr, $self:expr, $ip:expr) => {{
         let arg = $self.stack.pop().unwrap();
-        $self.stack.push($fn(arg));
+        let f = $fn;
+        $self.stack.push(f(arg));
         $self.set_ip($ip + 1);
     }};
 }
@@ -42,7 +43,8 @@ macro_rules! binary {
     ($fn:expr, $self:expr, $ip:expr) => {{
         let arg2 = $self.stack.pop().unwrap();
         let arg1 = $self.stack.pop().unwrap();
-        $self.stack.push($fn(arg1, arg2));
+        let f = $fn;
+        $self.stack.push(f(arg1, arg2));
         $self.set_ip($ip + 1);
     }};
 }
@@ -118,7 +120,7 @@ impl VirtualMachine {
                         };
                     } else {
                         let ret = self.stack.pop().unwrap();
-                        for _i in 0..(*self.frames.last().unwrap().closure).function.arity {
+                        for _i in 0..self.frames.last().unwrap().closure.function.arity {
                             self.stack.pop();
                         }
 
@@ -138,9 +140,9 @@ impl VirtualMachine {
                     self.stack.push(value.clone());
                     self.set_ip(ip + 4);
                 }
-                OpCode::OpNil => nullary!(|| { Value::Nil }, self, ip),
-                OpCode::OpTrue => nullary!(|| { Value::Bool(true) }, self, ip),
-                OpCode::OpFalse => nullary!(|| { Value::Bool(false) }, self, ip),
+                OpCode::OpNil => nullary!(Value::Nil, self, ip),
+                OpCode::OpTrue => nullary!(Value::Bool(true), self, ip),
+                OpCode::OpFalse => nullary!(Value::Bool(false), self, ip),
                 OpCode::OpAdd => binary!(|x, y| { x + y }, self, ip),
                 OpCode::OpSub => binary!(|x, y| { x - y }, self, ip),
                 OpCode::OpMul => binary!(|x, y| { x * y }, self, ip),
@@ -161,13 +163,13 @@ impl VirtualMachine {
                 OpCode::OpSetLocal => {
                     let value = self.stack.last().unwrap();
                     let slot = chunk.get_constant_index(ip + 1);
-                    self.stack[slot as usize] = value.clone();
+                    self.stack[slot] = value.clone();
                     self.set_ip(ip + 2);
                 }
                 OpCode::OpGetLocal => {
                     let slot = chunk.get_constant_index(ip + 1);
                     let fp = self.frames.last().unwrap().stackpointer;
-                    let id = slot as usize + fp;
+                    let id = slot + fp;
                     if id >= self.stack.len() {
                         return Err(VMErr::RuntimeError(String::from("Out of bound access")));
                     }
@@ -181,14 +183,14 @@ impl VirtualMachine {
                         .get_bool()
                         .ok_or_else(|| VMErr::RuntimeError("Failed to get boolean".to_string()))?
                     {
-                        self.set_ip(idx as usize);
+                        self.set_ip(idx);
                     } else {
                         self.set_ip(ip + 2);
                     }
                 }
                 OpCode::OpJmp => {
                     let idx = chunk.get_constant_index(ip + 1);
-                    self.set_ip(idx as usize);
+                    self.set_ip(idx);
                 }
                 OpCode::OpCall => {
                     let mut args: Vec<Value> = Vec::new();
