@@ -26,6 +26,3 @@ serde_json = "1.0"
 
 [[bin]]
 name = "main"
-
-[[bin]]
-name = "test"
