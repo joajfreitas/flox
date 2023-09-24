@@ -2,7 +2,6 @@ use std::fs;
 use std::io::{Error, ErrorKind};
 
 use serde::{Deserialize, Serialize};
-use serde_json;
 
 use clap::Parser;
 
@@ -59,7 +58,7 @@ fn validate_ok(output: String, test: &Test) -> (bool, bool) {
         }
     }
 
-    return (false, false);
+    (false, false)
 }
 
 fn validate_err(err: String, test: &Test) -> (bool, bool) {

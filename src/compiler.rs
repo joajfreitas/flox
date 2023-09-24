@@ -383,7 +383,7 @@ fn read_seq(
 }
 
 fn unescape_str(s: &str) -> String {
-    let re: Regex = Regex::new(r#"\\(.)"#).unwrap();
+    let re: Regex = Regex::new(r"\\(.)").unwrap();
     re.replace_all(s, |caps: &Captures| {
         (if &caps[1] == "n" { "\n" } else { &caps[1] }).to_string()
     })

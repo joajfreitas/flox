@@ -1,6 +1,5 @@
 use std::fs;
 
-use rustyline::error::ReadlineError;
 use rustyline::{Editor, Result};
 
 use clap::Parser;
@@ -36,12 +35,9 @@ fn repl(debug: bool) -> Result<()> {
                 rl.add_history_entry(line.as_str());
                 rl.save_history(".flang-history").unwrap();
 
-                match compile(&line, &mut chunk, &mut comp) {
-                    Err(err) => {
-                        println!("{}", err);
-                        continue;
-                    }
-                    _ => {}
+                if let Err(err) = compile(&line, &mut chunk, &mut comp) {
+                    println!("{}", err);
+                    continue;
                 };
                 if debug {
                     println!("{}", chunk);
@@ -80,6 +76,6 @@ fn main() {
     if args.file.is_some() {
         run_file(args.file.unwrap(), args.debug);
     } else {
-        repl(args.debug);
+        repl(args.debug).unwrap();
     }
 }
